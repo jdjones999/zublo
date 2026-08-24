@@ -20,7 +20,7 @@ onRecordAfterCreateSuccess((e) => {
   // ================================================================
   const catCol = $app.findCollectionByNameOrId("categories");
   const defaultCategories = [
-    "Streaming", "Browsing", "Shopping", "Gaming", "Music",
+    "Housing", "Streaming", "Browsing", "Shopping", "Gaming", "Music",
     "Education", "Health", "Finance", "Cloud Storage", "Software",
     "Communication", "News", "Food", "Transportation", "Utilities",
     "Insurance", "Other",
