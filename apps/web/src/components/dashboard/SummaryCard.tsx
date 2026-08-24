@@ -1,6 +1,9 @@
+import React from "react";
 import { TrendingUp } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 export function SummaryCard({
   title,
@@ -19,13 +22,27 @@ export function SummaryCard({
   trendUp?: boolean;
   gradient: string;
 }) {
+  const titleLower = title ? title.toLowerCase() : "";
+  const isCredit = CREDIT_KEYWORDS.some((kw) => titleLower.includes(kw));
+
+  // Dynamic gradient selection: defaults to income green when keywords match, otherwise preserves parent gradient
+  const cardGradient = isCredit
+    ? "from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20"
+    : gradient;
+
   return (
     <Card
-      className={`overflow-hidden relative rounded-3xl border bg-gradient-to-br ${gradient} shadow-sm hover:shadow-md transition-all`}
+      className={`overflow-hidden relative rounded-3xl border bg-gradient-to-br ${cardGradient} shadow-sm hover:shadow-md transition-all`}
     >
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="p-3 bg-background/50 backdrop-blur-sm rounded-2xl shadow-sm">
+          <div
+            className={`p-3 backdrop-blur-sm rounded-2xl shadow-sm ${
+              isCredit
+                ? "bg-emerald-500/20 text-emerald-400"
+                : "bg-background/50"
+            }`}
+          >
             {icon}
           </div>
           {trend && (
