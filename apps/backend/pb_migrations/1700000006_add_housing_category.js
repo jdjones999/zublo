@@ -6,11 +6,21 @@ migrate((app) => {
   try {
     app.findFirstRecordByData("categories", "name", "Housing");
   } catch (_) {
-    const record = new Record(categoriesCol);
-    record.set("name", "Housing");
+    // Find the primary/first user in the database to satisfy the 'user' requirement
+    let firstUser;
+    try {
+      firstUser = app.findFirstRecordByData("users", "", "");
+    } catch (_) {
+      // If no users exist yet during initial boot, skip until first user setup
+      return;
+    }
 
-    // Use saveNoValidate to allow system-seeded categories without an assigned user ID
-    app.saveNoValidate(record);
+    if (firstUser) {
+      const record = new Record(categoriesCol);
+      record.set("name", "Housing");
+      record.set("user", firstUser.id);
+      app.save(record);
+    }
   }
 }, (app) => {
   try {
