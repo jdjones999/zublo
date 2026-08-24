@@ -1,75 +1,44 @@
-import { useQuery } from "@tanstack/react-query";
-
-import { queryKeys } from "@/lib/queryKeys";
-import { toMonthly } from "@/lib/utils";
-import { currenciesService } from "@/services/currencies";
-import { subscriptionsService } from "@/services/subscriptions";
+import { useMemo } from "react";
 import type { Subscription } from "@/types";
 
-export function useSummaryData(userId: string) {
-  return useQuery({
-    queryKey: queryKeys.dashboard(userId),
-    queryFn: async () => {
-      const [subs, currencies] = await Promise.all([
-        subscriptionsService.listActive(userId),
-        currenciesService.list(userId),
-      ]);
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
-      const mainCurrency = currencies.find((c) => c.is_main);
-      const mainRate = mainCurrency?.rate ?? 1;
-      const mainSymbol = mainCurrency?.symbol ?? "$";
+export function useSummaryData(subscriptions: Subscription[] = []) {
+  return useMemo(() => {
+    let totalMonthly = 0;
+    let totalBonusCredits = 0;
 
-      let totalMonthly = 0;
-      let totalBonus = 0;
-      let mostExpensive: {
-        id: string;
-        name: string;
-        monthly: number;
-        logo?: string;
-        record: Subscription;
-      } | null = null;
+    subscriptions.forEach((sub) => {
+      if (!sub.active) return;
 
-      for (const sub of subs) {
-        const currency = sub.expand?.currency;
-        const cycleName = sub.expand?.cycle?.name ?? "Monthly";
-        const monthly = toMonthly(sub.price, cycleName, sub.frequency || 1);
-        const rate = currency?.rate ?? 1;
-        const monthlyMain = (monthly / rate) * mainRate;
+      const titleLower = sub.name ? sub.name.toLowerCase() : "";
+      const isCredit = CREDIT_KEYWORDS.some((keyword) =>
+        titleLower.includes(keyword)
+      );
 
-        // Check if the item is a bonus credit (case-insensitive)
-        const isBonus = sub.name && sub.name.toLowerCase().includes("bonus");
-
-        if (isBonus) {
-          // Add to bonus credits total instead of recurring debt
-          totalBonus += monthlyMain;
-        } else {
-          // Add to recurring debt expenses
-          totalMonthly += monthlyMain;
-
-          // Track highest cost among actual expenses only
-          if (!mostExpensive || monthlyMain > mostExpensive.monthly) {
-            mostExpensive = {
-              id: sub.id,
-              name: sub.name,
-              monthly: monthlyMain,
-              logo: sub.logo,
-              record: sub,
-            };
-          }
-        }
+      // Convert cost based on billing cycle
+      let monthlyCost = sub.price || 0;
+      if (sub.billing_cycle === "yearly") {
+        monthlyCost /= 12;
+      } else if (sub.billing_cycle === "weekly") {
+        monthlyCost *= 4.33;
+      } else if (sub.billing_cycle === "daily") {
+        monthlyCost *= 30;
       }
 
-      return {
-        totalMonthly,
-        totalBonus,
-        totalYearly: totalMonthly * 12,
-        totalWeekly: (totalMonthly * 12) / 52,
-        totalDaily: (totalMonthly * 12) / 365,
-        mainSymbol,
-        count: subs.length,
-        mostExpensive,
-      };
-    },
-    enabled: !!userId,
-  });
+      if (isCredit) {
+        totalBonusCredits += monthlyCost;
+      } else {
+        totalMonthly += monthlyCost;
+      }
+    });
+
+    return {
+      totalMonthly,
+      totalBonusCredits,
+      totalYearly: totalMonthly * 12,
+      totalWeekly: totalMonthly / 4.33,
+      totalDaily: totalMonthly / 30,
+    };
+  }, [subscriptions]);
 }
