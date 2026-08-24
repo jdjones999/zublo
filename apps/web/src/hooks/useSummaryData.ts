@@ -9,17 +9,12 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
     let totalBonusCredits = 0;
 
     subscriptions.forEach((sub) => {
-      // Skip inactive subscriptions
       if (sub.inactive) return;
 
-      // Extract subscription name safely and normalize
-      const subName = sub.name || "";
-      const nameLower = subName.toLowerCase().trim();
+      const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
+      const isCredit = CREDIT_KEYWORDS.some((kw) => titleLower.includes(kw));
 
-      // Check if item name contains any credit/income keyword
-      const isCredit = CREDIT_KEYWORDS.some((kw) => nameLower.includes(kw));
-
-      // Resolve cycle name across direct properties and expanded PocketBase relations
+      // Resolve cycle across relations and fallback properties
       const cycleName = (
         sub.expand?.cycle?.name ||
         sub.billing_cycle ||
@@ -33,18 +28,18 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       const rawPrice = sub.price || 0;
       let monthlyCost = rawPrice;
 
-      // Normalize cost to monthly equivalent
       if (cycleName.includes("year")) {
-        monthlyCost = (rawPrice / 12) / frequency;
+        monthlyCost = rawPrice / (12 * frequency);
       } else if (cycleName.includes("week")) {
-        monthlyCost = (rawPrice * 4.33) / frequency;
+        monthlyCost = (rawPrice * (52 / 12)) / frequency;
       } else if (cycleName.includes("day")) {
-        monthlyCost = (rawPrice * 30) / frequency;
-      } else if (cycleName.includes("month")) {
+        monthlyCost = (rawPrice * 30.44) / frequency;
+      } else if (cycleName.includes("one") || cycleName.includes("once")) {
+        monthlyCost = rawPrice / frequency;
+      } else {
         monthlyCost = rawPrice / frequency;
       }
 
-      // Add to credit buffer or regular monthly expense debt
       if (isCredit) {
         totalBonusCredits += monthlyCost;
       } else {
@@ -56,8 +51,8 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       totalMonthly,
       totalBonusCredits,
       totalYearly: totalMonthly * 12,
-      totalWeekly: totalMonthly / 4.33,
-      totalDaily: totalMonthly / 30,
+      totalWeekly: totalMonthly / (52 / 12),
+      totalDaily: totalMonthly / 30.44,
     };
   }, [subscriptions]);
 }
