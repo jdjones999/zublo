@@ -4,14 +4,10 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { cn, daysUntil, formatDate, formatPrice, subscriptionProgress, toMainCurrency, toMonthly } from "@/lib/utils";
+import { cn, daysUntil, formatDate, formatPrice, isCreditItem, subscriptionProgress, toMainCurrency, toMonthly } from "@/lib/utils";
 import { paymentMethodsService } from "@/services/paymentMethods";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Currency, PaymentMethod, Subscription } from "@/types";
-
-// ── Credit/Income Keyword Helper ─────────────────────────────────────────────
-
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 // ── Payment method icon helpers ───────────────────────────────────────────────
 
@@ -116,12 +112,8 @@ export function SubscriptionCard({
     ? subscriptionProgress(sub.start_date, sub.next_payment)
     : 0;
 
-  // Check if subscription name includes any credit keyword
   const subName = sub.name || "";
-  const subNameLower = subName.toLowerCase().trim();
-  const isCredit = CREDIT_KEYWORDS.some((keyword) =>
-    subNameLower.includes(keyword)
-  );
+  const isCredit = isCreditItem(sub);
 
   return (
     <div
