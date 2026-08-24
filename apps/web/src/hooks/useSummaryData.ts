@@ -39,25 +39,24 @@ export function useSummaryData(userId: string) {
 
         const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
         const categoryLower = categoryName.toLowerCase().trim();
-        const cycleLower = cycleName.toLowerCase().trim();
 
         // Check if item is an income/credit stream
         const isCreditKeyword = CREDIT_KEYWORDS.some(
           (kw) => titleLower.includes(kw) || categoryLower.includes(kw)
         );
-        const isOneTime =
-          cycleLower.includes("one") ||
-          cycleLower.includes("once") ||
-          cycleLower === "one-time";
 
-        const isCreditItem = isCreditKeyword && isOneTime && frequency === 1;
+        // Treat any matching keyword as a credit stream
+        const isCreditItem = isCreditKeyword;
 
         const rate = currency?.rate ?? 1;
         const rawMainPrice = (sub.price / rate) * mainRate;
 
         if (isCreditItem) {
-          // Store raw price as positive credit; DO NOT pass into toMonthly()
-          totalBonus += rawMainPrice;
+          // Calculate monthly credit value if recurring, or raw price if one-time
+          const monthlyCredit = toMonthly(sub.price, cycleName, frequency);
+          const monthlyMainCredit = (monthlyCredit / rate) * mainRate;
+
+          totalBonus += monthlyMainCredit;
         } else {
           // Calculate standard recurring debt expense
           const monthly = toMonthly(sub.price, cycleName, frequency);
