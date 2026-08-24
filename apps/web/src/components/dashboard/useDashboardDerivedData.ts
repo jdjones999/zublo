@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-
 import type { User } from "@/types";
 
 interface SummaryData {
@@ -33,7 +32,7 @@ export function useDashboardDerivedData({
     [yearlyCosts],
   );
 
-  // Add bonus credits to base monthly budget to expand effective spending power
+  // Add all bonus/dividend/commission credits to base budget to expand effective spending power
   const baseBudget = user?.budget ?? 0;
   const totalBonusCredits = summary?.totalBonusCredits ?? 0;
   const budget = baseBudget + totalBonusCredits;
