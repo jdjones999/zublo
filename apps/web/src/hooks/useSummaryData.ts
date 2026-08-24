@@ -9,14 +9,13 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
     let totalBonusCredits = 0;
 
     subscriptions.forEach((sub) => {
-      if (!sub.active) return;
+      if (sub.inactive) return;
 
       const titleLower = sub.name ? sub.name.toLowerCase() : "";
       const isCredit = CREDIT_KEYWORDS.some((keyword) =>
         titleLower.includes(keyword)
       );
 
-      // Convert price based on billing cycle
       let monthlyCost = sub.price || 0;
       if (sub.billing_cycle === "yearly") {
         monthlyCost /= 12;
@@ -29,7 +28,6 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       if (isCredit) {
         totalBonusCredits += monthlyCost;
       } else {
-        // Only non-credit items contribute to debt totals
         totalMonthly += monthlyCost;
       }
     });
