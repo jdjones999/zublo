@@ -4,7 +4,7 @@ import type { User } from "@/types";
 
 interface SummaryData {
   totalMonthly: number;
-  totalBonus?: number;
+  totalBonusCredits?: number;
 }
 
 interface YearlyCostPoint {
@@ -35,8 +35,8 @@ export function useDashboardDerivedData({
 
   // Add bonus credits to base monthly budget to expand effective spending power
   const baseBudget = user?.budget ?? 0;
-  const totalBonus = summary?.totalBonus ?? 0;
-  const budget = baseBudget + totalBonus;
+  const totalBonusCredits = summary?.totalBonusCredits ?? 0;
+  const budget = baseBudget + totalBonusCredits;
 
   const totalExpenses = summary?.totalMonthly ?? 0;
   const budgetUsed =
