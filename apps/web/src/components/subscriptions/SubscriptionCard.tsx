@@ -154,11 +154,11 @@ export function SubscriptionCard({
           {/* ----------------------------------------------------------------- */}
           <p
             className={cn(
-              "font-extrabold text-xl font-mono tracking-tight",
-              isBonus ? "text-emerald-500" : "text-foreground"
+            "font-extrabold text-xl font-mono tracking-tight",
+            isBonus ? "text-[#10b981]" : "text-foreground"
             )}
           >
-            {formatPrice(price, symbol)}
+          {formatPrice(price, symbol)}
           </p>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
             {showMonthly ? t("monthly") : cycleName}
