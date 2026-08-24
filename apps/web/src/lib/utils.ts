@@ -1,8 +1,8 @@
-import { type ClassValue,clsx } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import { subscriptionsService } from "@/services/subscriptions";
-import type { Currency,Subscription } from "@/types";
+import type { Currency, Subscription } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -70,14 +70,20 @@ export function toMonthly(
   frequency: number,
 ): number {
   const f = frequency || 1;
-  switch (cycleName) {
-    case "Daily":
-      return (price / f) * 30.44;
-    case "Weekly":
-      return (price / f) * (52 / 12);
-    case "Monthly":
+  const normalizedCycle = (cycleName || "").toLowerCase();
+
+  switch (normalizedCycle) {
+    case "one-time":
+    case "onetime":
+    case "once":
       return price / f;
-    case "Yearly":
+    case "daily":
+      return (price / f) * 30.44;
+    case "weekly":
+      return (price / f) * (52 / 12);
+    case "monthly":
+      return price / f;
+    case "yearly":
       return price / (f * 12);
     default:
       return price;
