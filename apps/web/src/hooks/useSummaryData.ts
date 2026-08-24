@@ -9,22 +9,42 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
     let totalBonusCredits = 0;
 
     subscriptions.forEach((sub) => {
+      // Skip inactive subscriptions
       if (sub.inactive) return;
 
-      const titleLower = sub.name ? sub.name.toLowerCase() : "";
-      const isCredit = CREDIT_KEYWORDS.some((keyword) =>
-        titleLower.includes(keyword)
-      );
+      // Extract subscription name safely and normalize
+      const subName = sub.name || "";
+      const nameLower = subName.toLowerCase().trim();
 
-      let monthlyCost = sub.price || 0;
-      if (sub.billing_cycle === "yearly") {
-        monthlyCost /= 12;
-      } else if (sub.billing_cycle === "weekly") {
-        monthlyCost *= 4.33;
-      } else if (sub.billing_cycle === "daily") {
-        monthlyCost *= 30;
+      // Check if item name contains any credit/income keyword
+      const isCredit = CREDIT_KEYWORDS.some((kw) => nameLower.includes(kw));
+
+      // Resolve cycle name across direct properties and expanded PocketBase relations
+      const cycleName = (
+        sub.expand?.cycle?.name ||
+        sub.billing_cycle ||
+        sub.cycle ||
+        "monthly"
+      )
+        .toString()
+        .toLowerCase();
+
+      const frequency = sub.frequency || 1;
+      const rawPrice = sub.price || 0;
+      let monthlyCost = rawPrice;
+
+      // Normalize cost to monthly equivalent
+      if (cycleName.includes("year")) {
+        monthlyCost = (rawPrice / 12) / frequency;
+      } else if (cycleName.includes("week")) {
+        monthlyCost = (rawPrice * 4.33) / frequency;
+      } else if (cycleName.includes("day")) {
+        monthlyCost = (rawPrice * 30) / frequency;
+      } else if (cycleName.includes("month")) {
+        monthlyCost = rawPrice / frequency;
       }
 
+      // Add to credit buffer or regular monthly expense debt
       if (isCredit) {
         totalBonusCredits += monthlyCost;
       } else {
