@@ -14,12 +14,23 @@ export const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 /**
  * Checks if a subscription item is an incoming credit (bonus, dividend, commission, income)
- * rather than a debt or recurring expense.
+ * rather than a debt or recurring expense. Supports passing a name string or full Subscription object.
  */
-export function isCreditItem(name?: string): boolean {
-  if (!name) return false;
-  const normalized = name.toLowerCase().trim();
-  return CREDIT_KEYWORDS.some((keyword) => normalized.includes(keyword));
+export function isCreditItem(item?: string | Subscription | null): boolean {
+  if (!item) return false;
+
+  if (typeof item === "string") {
+    const normalized = item.toLowerCase().trim();
+    return CREDIT_KEYWORDS.some((keyword) => normalized.includes(keyword));
+  }
+
+  const titleLower = item.name ? item.name.toLowerCase().trim() : "";
+  const categoryName = item.expand?.category?.name ?? "";
+  const categoryLower = categoryName.toLowerCase().trim();
+
+  return CREDIT_KEYWORDS.some(
+    (keyword) => titleLower.includes(keyword) || categoryLower.includes(keyword)
+  );
 }
 
 /**
@@ -27,7 +38,7 @@ export function isCreditItem(name?: string): boolean {
  */
 export function calculateMonthlyExpenses(subscriptions: Subscription[]): number {
   return subscriptions.reduce((total, sub) => {
-    if (sub.inactive || isCreditItem(sub.name)) return total;
+    if (sub.inactive || isCreditItem(sub)) return total;
     const cycleName = sub.expand?.cycle?.name ?? "monthly";
     return total + toMonthly(sub.price || 0, cycleName, sub.frequency || 1);
   }, 0);
@@ -38,7 +49,7 @@ export function calculateMonthlyExpenses(subscriptions: Subscription[]): number 
  */
 export function calculateMonthlyCredits(subscriptions: Subscription[]): number {
   return subscriptions.reduce((total, sub) => {
-    if (sub.inactive || !isCreditItem(sub.name)) return total;
+    if (sub.inactive || !isCreditItem(sub)) return total;
     const cycleName = sub.expand?.cycle?.name ?? "monthly";
     return total + toMonthly(sub.price || 0, cycleName, sub.frequency || 1);
   }, 0);
