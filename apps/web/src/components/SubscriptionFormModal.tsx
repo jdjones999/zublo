@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/contexts/AuthContext";
 import { compressImage } from "@/lib/image";
 import { toast } from "@/lib/toast";
 import { subscriptionsService } from "@/services/subscriptions";
@@ -59,7 +58,6 @@ export function SubscriptionFormModal({
   onSaved,
 }: Props) {
   const { t } = useTranslation();
-  const { user: authUser } = useAuth();
 
   const logo = useLogoSearch();
   const {
@@ -399,21 +397,19 @@ export function SubscriptionFormModal({
                 )}
               />
             </div>
-            {!!authUser?.payment_tracking && (
-              <div className="flex items-center justify-between">
-                <Label>{t("auto_mark_paid")}</Label>
-                <Controller
-                  name="auto_mark_paid"
-                  control={control}
-                  render={({ field }) => (
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-              </div>
-            )}
+            <div className="flex items-center justify-between">
+              <Label>{t("auto_mark_paid")}</Label>
+              <Controller
+                name="auto_mark_paid"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
           </div>
 
           {watchedNotify && (
