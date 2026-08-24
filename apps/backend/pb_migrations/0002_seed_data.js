@@ -4,8 +4,8 @@
  * Zublo — Seed Data Migration
  *
  * Populates static lookup data:
- * - 4 cycles (Daily, Weekly, Monthly, Yearly)
- * - 29 frequencies linked to their respective cycles
+ * - 5 cycles (Daily, Weekly, Monthly, Yearly, One-Time)
+ * - 30 frequencies linked to their respective cycles
  * - admin_settings singleton with defaults
  */
 
@@ -15,7 +15,7 @@ migrate(
     // Seed Cycles
     // ================================================================
     const cyclesCol = app.findCollectionByNameOrId("cycles");
-    const cycleNames = ["Daily", "Weekly", "Monthly", "Yearly"];
+    const cycleNames = ["One-Time", "Daily", "Weekly", "Monthly", "Yearly"];
     const cycleIds = {};
 
     for (const name of cycleNames) {
@@ -31,6 +31,8 @@ migrate(
     const freqCol = app.findCollectionByNameOrId("frequencies");
 
     const frequencies = [
+      // One-Time
+      { name: "Once", value: 1, cycle: "One-Time" },
       // Daily
       { name: "Every day", value: 1, cycle: "Daily" },
       { name: "Every 2 days", value: 2, cycle: "Daily" },
@@ -88,7 +90,7 @@ migrate(
     settings.set("smtp_encryption", "tls");
     app.save(settings);
 
-    console.log("[Zublo] Seed data: 4 cycles, 29 frequencies, 1 admin_settings");
+    console.log("[Zublo] Seed data: 5 cycles, 30 frequencies, 1 admin_settings");
   },
 
   // DOWN
