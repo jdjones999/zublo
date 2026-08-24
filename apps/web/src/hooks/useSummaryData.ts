@@ -1,70 +1,59 @@
-import { useMemo } from "react";
+import { api } from "@/lib/api";
+import pb from "@/lib/pb";
 import type { Subscription } from "@/types";
 
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+const FULL_EXPAND = "currency,cycle,category,payment_method,payer";
 
-export function useSummaryData(subscriptions: Subscription[] = []) {
-  return useMemo(() => {
-    let totalMonthlyExpenses = 0;
-    let totalMonthlyCredits = 0;
+export const subscriptionsService = {
+  /** All subscriptions for a user (active + inactive), with full relations. */
+  list: (userId: string) =>
+    pb.collection("subscriptions").getFullList<Subscription>({
+      filter: pb.filter("user = {:userId}", { userId }),
+      expand: FULL_EXPAND,
+    }),
 
-    subscriptions.forEach((sub) => {
-      if (sub.inactive) return;
+  /** Only active subscriptions — used by dashboard summary. */
+  listActive: (userId: string) =>
+    pb.collection("subscriptions").getFullList<Subscription>({
+      filter: pb.filter("user = {:userId} && inactive = false", { userId }),
+      expand: "currency,cycle,category",
+    }),
 
-      const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
-      const categoryName = sub.expand?.category?.name
-        ? sub.expand.category.name.toLowerCase().trim()
-        : "";
+  /** Only active subscriptions with full expand — used by statistics. */
+  listActiveExpanded: (userId: string) =>
+    pb.collection("subscriptions").getFullList<Subscription>({
+      filter: pb.filter("user = {:userId} && inactive = false", { userId }),
+      expand: FULL_EXPAND,
+    }),
 
-      // Identify if the entry represents a credit/income stream
-      const isCredit = CREDIT_KEYWORDS.some(
-        (kw) => titleLower.includes(kw) || categoryName.includes(kw)
-      );
+  create: (data: FormData | Partial<Subscription>) =>
+    pb.collection("subscriptions").create<Subscription>(data),
 
-      const cycleName = (
-        sub.expand?.cycle?.name ||
-        sub.billing_cycle ||
-        sub.cycle ||
-        "monthly"
-      )
-        .toString()
-        .toLowerCase()
-        .trim();
+  update: (id: string, data: FormData | Partial<Subscription>) =>
+    pb.collection("subscriptions").update<Subscription>(id, data),
 
-      const frequency = sub.frequency || 1;
-      const rawPrice = sub.price || 0;
+  delete: (id: string) => pb.collection("subscriptions").delete(id),
 
-      // Calculate base monthly normalized amount
-      let monthlyAmount = rawPrice;
-      if (cycleName.includes("year")) {
-        monthlyAmount = rawPrice / (12 * frequency);
-      } else if (cycleName.includes("week")) {
-        monthlyAmount = (rawPrice * (52 / 12)) / frequency;
-      } else if (cycleName.includes("day")) {
-        monthlyAmount = (rawPrice * 30.44) / frequency;
-      } else {
-        monthlyAmount = rawPrice / frequency;
-      }
+  clone: (id: string) =>
+    api.post<{ id: string }>("/api/subscription/clone", { id }),
 
-      if (isCredit) {
-        // Accumulate as credit/income
-        totalMonthlyCredits += monthlyAmount;
-      } else {
-        // Accumulate as recurring debt/expense
-        totalMonthlyExpenses += monthlyAmount;
-      }
-    });
+  renew: (id: string) =>
+    api.post<{ id: string }>("/api/subscription/renew", { id }),
 
-    // Net monthly expense (Expenses minus Credits)
-    const netMonthly = Math.max(0, totalMonthlyExpenses - totalMonthlyCredits);
+  export: () =>
+    api.get<{ subscriptions: unknown[] }>("/api/subscriptions/export"),
 
-    return {
-      totalMonthly: netMonthly,
-      totalCredits: totalMonthlyCredits,
-      totalExpenses: totalMonthlyExpenses,
-      totalYearly: netMonthly * 12,
-      totalWeekly: netMonthly / (52 / 12),
-      totalDaily: netMonthly / 30.44,
-    };
-  }, [subscriptions]);
-}
+  import: (subscriptions: unknown[]) =>
+    api.post<{ imported: number; skipped: number; errors: { index: number; name?: string; reason?: string; warning?: string }[] }>(
+      "/api/subscriptions/import",
+      { subscriptions }
+    ),
+
+  logoUrl: (sub: Subscription): string | null => {
+    if (!sub.logo) return null;
+    return pb.files.getUrl(
+      { collectionId: "subscriptions", id: sub.id } as Parameters<typeof pb.files.getUrl>[0],
+      sub.logo,
+    );
+  },
+};
