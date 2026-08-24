@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import type { Subscription } from "@/types";
 
-const CREDIT_TYPES = ["bonus", "dividend", "commission", "income"];
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 export function useSummaryData(subscriptions: Subscription[] = []) {
   return useMemo(() => {
-    let totalMonthly = 0;
-    let totalBonusCredits = 0;
+    let totalMonthlyExpenses = 0;
+    let totalMonthlyCredits = 0;
 
     subscriptions.forEach((sub) => {
       if (sub.inactive) return;
@@ -15,6 +15,11 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       const categoryName = sub.expand?.category?.name
         ? sub.expand.category.name.toLowerCase().trim()
         : "";
+
+      // Identify if the entry represents a credit/income stream
+      const isCredit = CREDIT_KEYWORDS.some(
+        (kw) => titleLower.includes(kw) || categoryName.includes(kw)
+      );
 
       const cycleName = (
         sub.expand?.cycle?.name ||
@@ -29,44 +34,37 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       const frequency = sub.frequency || 1;
       const rawPrice = sub.price || 0;
 
-      // Check Category OR Title against Credit Keywords
-      const isCreditCategoryOrTitle = CREDIT_TYPES.some(
-        (type) => titleLower.includes(type) || categoryName.includes(type)
-      );
-
-      // Check for Cycle = "One-Time" and Frequency = 1
-      const isOneTime =
-        cycleName.includes("one") || cycleName.includes("once") || cycleName === "one-time";
-
-      const isCreditItem = isCreditCategoryOrTitle && isOneTime && frequency === 1;
-
-      if (isCreditItem) {
-        // Exclude completely from recurring G() / monthly cost calculation
-        totalBonusCredits += rawPrice;
-        return;
-      }
-
-      // Calculate standard recurring monthly cost
-      let monthlyCost = rawPrice;
+      // Calculate base monthly normalized amount
+      let monthlyAmount = rawPrice;
       if (cycleName.includes("year")) {
-        monthlyCost = rawPrice / (12 * frequency);
+        monthlyAmount = rawPrice / (12 * frequency);
       } else if (cycleName.includes("week")) {
-        monthlyCost = (rawPrice * (52 / 12)) / frequency;
+        monthlyAmount = (rawPrice * (52 / 12)) / frequency;
       } else if (cycleName.includes("day")) {
-        monthlyCost = (rawPrice * 30.44) / frequency;
+        monthlyAmount = (rawPrice * 30.44) / frequency;
       } else {
-        monthlyCost = rawPrice / frequency;
+        monthlyAmount = rawPrice / frequency;
       }
 
-      totalMonthly += monthlyCost;
+      if (isCredit) {
+        // Accumulate as credit/income
+        totalMonthlyCredits += monthlyAmount;
+      } else {
+        // Accumulate as recurring debt/expense
+        totalMonthlyExpenses += monthlyAmount;
+      }
     });
 
+    // Net monthly expense (Expenses minus Credits)
+    const netMonthly = Math.max(0, totalMonthlyExpenses - totalMonthlyCredits);
+
     return {
-      totalMonthly,
-      totalBonusCredits, // Exposed for separate remaining balance additions
-      totalYearly: totalMonthly * 12,
-      totalWeekly: totalMonthly / (52 / 12),
-      totalDaily: totalMonthly / 30.44,
+      totalMonthly: netMonthly,
+      totalCredits: totalMonthlyCredits,
+      totalExpenses: totalMonthlyExpenses,
+      totalYearly: netMonthly * 12,
+      totalWeekly: netMonthly / (52 / 12),
+      totalDaily: netMonthly / 30.44,
     };
   }, [subscriptions]);
 }
