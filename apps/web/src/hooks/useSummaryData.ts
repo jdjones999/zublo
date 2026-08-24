@@ -20,6 +20,7 @@ export function useSummaryData(userId: string) {
       const mainSymbol = mainCurrency?.symbol ?? "$";
 
       let totalMonthly = 0;
+      let totalBonus = 0;
       let mostExpensive: {
         id: string;
         name: string;
@@ -34,21 +35,32 @@ export function useSummaryData(userId: string) {
         const monthly = toMonthly(sub.price, cycleName, sub.frequency || 1);
         const rate = currency?.rate ?? 1;
         const monthlyMain = (monthly / rate) * mainRate;
-        totalMonthly += monthlyMain;
 
-        if (!mostExpensive || monthlyMain > mostExpensive.monthly) {
-          mostExpensive = {
-            id: sub.id,
-            name: sub.name,
-            monthly: monthlyMain,
-            logo: sub.logo,
-            record: sub,
-          };
+        // Check if the item is a bonus credit (case-insensitive)
+        const isBonus = sub.name && sub.name.toLowerCase().includes("bonus");
+
+        if (isBonus) {
+          // Add to bonus credits total instead of recurring debt
+          totalBonus += monthlyMain;
+        } else {
+          // Add to recurring debt expenses
+          totalMonthly += monthlyMain;
+
+          if (!mostExpensive || monthlyMain > mostExpensive.monthly) {
+            mostExpensive = {
+              id: sub.id,
+              name: sub.name,
+              monthly: monthlyMain,
+              logo: sub.logo,
+              record: sub,
+            };
+          }
         }
       }
 
       return {
         totalMonthly,
+        totalBonus,
         totalYearly: totalMonthly * 12,
         totalWeekly: (totalMonthly * 12) / 52,
         totalDaily: (totalMonthly * 12) / 365,
