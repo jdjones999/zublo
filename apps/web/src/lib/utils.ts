@@ -8,6 +8,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// ── Credit / Income Keyword Helpers ──────────────────────────────────────────
+
+export const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+
+/**
+ * Checks if a subscription item is an incoming credit (bonus, dividend, commission, income)
+ * rather than a debt or recurring expense.
+ */
+export function isCreditItem(name?: string): boolean {
+  if (!name) return false;
+  const normalized = name.toLowerCase().trim();
+  return CREDIT_KEYWORDS.some((keyword) => normalized.includes(keyword));
+}
+
+/**
+ * Calculates total monthly expenses while strictly EXCLUDING credit items.
+ */
+export function calculateMonthlyExpenses(subscriptions: Subscription[]): number {
+  return subscriptions.reduce((total, sub) => {
+    if (sub.inactive || isCreditItem(sub.name)) return total;
+    const cycleName = sub.expand?.cycle?.name ?? "monthly";
+    return total + toMonthly(sub.price || 0, cycleName, sub.frequency || 1);
+  }, 0);
+}
+
+/**
+ * Calculates total monthly credit income (bonus, dividend, commission, income).
+ */
+export function calculateMonthlyCredits(subscriptions: Subscription[]): number {
+  return subscriptions.reduce((total, sub) => {
+    if (sub.inactive || !isCreditItem(sub.name)) return total;
+    const cycleName = sub.expand?.cycle?.name ?? "monthly";
+    return total + toMonthly(sub.price || 0, cycleName, sub.frequency || 1);
+  }, 0);
+}
+
 /** Convert a price to the main currency using exchange rates. */
 export function toMainCurrency(price: number, cur: Currency | undefined): number {
   if (!cur || !cur.rate || cur.is_main) return price;
