@@ -39,7 +39,7 @@ const PAYMENT_ICON_MAP: Record<string, string> = {
 
 function getPaymentIconSrc(method: PaymentMethod): string | null {
   if (method.icon) return paymentMethodsService.iconUrl(method);
-  const key = method.name.toLowerCase();
+  const key = method.name ? method.name.toLowerCase() : "";
   return PAYMENT_ICON_MAP[key] ? `/assets/payments/${PAYMENT_ICON_MAP[key]}` : null;
 }
 
@@ -57,13 +57,19 @@ function PaymentMethodIcon({ method }: { method: PaymentMethod }) {
       />
     );
   }
-  const initials = method.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const initials = (method.name || "")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <span
       title={method.name}
       className="h-7 w-10 rounded bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0"
     >
-      {initials}
+      {initials || "PM"}
     </span>
   );
 }
@@ -94,9 +100,9 @@ export function SubscriptionCard({
 }) {
   const { t } = useTranslation();
   const currency = sub.expand?.currency;
-  const cycleName = sub.expand?.cycle?.name ?? "Monthly";
+  const cycleName = sub.expand?.cycle?.name ?? sub.billing_cycle ?? "Monthly";
   const category = sub.expand?.category;
-  const payer = sub.expand?.payer;
+  const payer = sub.expand?.payer || sub.expand?.user || (sub.payer ? { name: sub.payer } : null);
   const paymentMethod = sub.expand?.payment_method;
 
   const shouldConvert = convertCurrency && mainCurrency && !currency?.is_main;
@@ -111,7 +117,8 @@ export function SubscriptionCard({
     : 0;
 
   // Check if subscription name includes any credit keyword
-  const subNameLower = sub.name?.toLowerCase() || "";
+  const subName = sub.name || "";
+  const subNameLower = subName.toLowerCase().trim();
   const isCredit = CREDIT_KEYWORDS.some((keyword) =>
     subNameLower.includes(keyword)
   );
@@ -131,15 +138,19 @@ export function SubscriptionCard({
             {sub.logo ? (
               <img
                 src={subscriptionsService.logoUrl(sub) ?? ""}
-                alt={sub.name}
+                alt={subName}
                 className="h-full w-full object-cover p-1 rounded-2xl"
               />
             ) : (
-              <span className="bg-primary/10 text-primary w-full h-full flex items-center justify-center">{sub.name[0]?.toUpperCase()}</span>
+              <span className="bg-primary/10 text-primary w-full h-full flex items-center justify-center">
+                {subName[0] ? subName[0].toUpperCase() : "S"}
+              </span>
             )}
           </div>
           <div>
-            <h3 className="font-bold text-lg leading-tight line-clamp-1 group-hover:text-primary transition-colors">{sub.name}</h3>
+            <h3 className="font-bold text-lg leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+              {subName}
+            </h3>
             {category && (
               <span className="text-xs font-medium text-muted-foreground mr-2">
                 {category.name}
@@ -171,14 +182,20 @@ export function SubscriptionCard({
       <div className="space-y-4">
         {sub.next_payment && !sub.inactive && (
           <div className="flex items-center justify-between text-sm bg-background/50 border rounded-xl px-3 py-2">
-            <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {t("next")}</span>
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" /> {t("next")}
+            </span>
             <div className="font-medium text-foreground flex items-center gap-2">
               {formatDate(sub.next_payment)}
               {days >= 0 && (
                 <span
                   className={cn(
                     "text-xs px-2 py-0.5 rounded-full",
-                    days <= 3 ? "bg-orange-500/10 text-orange-600 font-bold" : "bg-primary/10 text-primary font-semibold"
+                    days <= 3
+                      ? "bg-orange-500/10 text-orange-600 font-bold"
+                      : isCredit
+                      ? "bg-[#10b981]/10 text-[#10b981] font-semibold"
+                      : "bg-primary/10 text-primary font-semibold"
                   )}
                 >
                   {days}d
@@ -202,25 +219,59 @@ export function SubscriptionCard({
       <div className="mt-5 pt-4 border-t flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {paymentMethod && <PaymentMethodIcon method={paymentMethod} />}
-          {payer && <span className="font-medium text-foreground/80">{t("pays")} {payer.name}</span>}
+          {payer && (
+            <span className="font-medium text-foreground/80">
+              {t("pays")} {payer.name}
+            </span>
+          )}
         </div>
         
         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur rounded-full p-1 border shadow-sm absolute bottom-4 right-4">
           {sub.url && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => window.open(sub.url, "_blank")} title={t("open_url")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
+              onClick={() => window.open(sub.url, "_blank")}
+              title={t("open_url")}
+            >
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10" onClick={onEdit} title={t("edit")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10"
+            onClick={onEdit}
+            title={t("edit")}
+          >
             <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-green-500 hover:bg-green-500/10" onClick={onClone} title={t("clone")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+            onClick={onClone}
+            title={t("clone")}
+          >
             <Copy className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" onClick={onRenew} title={t("renew")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+            onClick={onRenew}
+            title={t("renew")}
+          >
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={onDelete} title={t("delete")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={onDelete}
+            title={t("delete")}
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
