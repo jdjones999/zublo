@@ -3,7 +3,7 @@ import type { User } from "@/types";
 
 interface SummaryData {
   totalMonthly: number;
-  totalBonusCredits?: number;
+  totalBonusCredits?: number; // Represents total combined credits (bonus, dividend, commission, income)
 }
 
 interface YearlyCostPoint {
@@ -32,7 +32,7 @@ export function useDashboardDerivedData({
     [yearlyCosts],
   );
 
-  // Add all bonus/dividend/commission credits to base budget to expand effective spending power
+  // Add all combined credit income (bonus, dividend, commission, income) to base budget
   const baseBudget = user?.budget ?? 0;
   const totalBonusCredits = summary?.totalBonusCredits ?? 0;
   const budget = baseBudget + totalBonusCredits;
@@ -42,7 +42,7 @@ export function useDashboardDerivedData({
     budget > 0
       ? Math.min(100, (totalExpenses / budget) * 100)
       : 0;
-  const isOverBudget = budgetUsed >= 100;
+  const isOverBudget = budget > 0 ? totalExpenses > budget : false;
   const remaining = budget - totalExpenses;
 
   return {
