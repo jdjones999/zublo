@@ -13,6 +13,7 @@ export function SummaryCard({
   trend,
   trendUp,
   gradient,
+  isCredit: explicitIsCredit,
 }: {
   title: string;
   value: string;
@@ -21,11 +22,13 @@ export function SummaryCard({
   trend?: string;
   trendUp?: boolean;
   gradient: string;
+  isCredit?: boolean;
 }) {
   const titleLower = title ? title.toLowerCase() : "";
-  const isCredit = CREDIT_KEYWORDS.some((kw) => titleLower.includes(kw));
+  const isCredit =
+    explicitIsCredit ?? CREDIT_KEYWORDS.some((kw) => titleLower.includes(kw));
 
-  // Dynamic gradient selection: defaults to income green when keywords match, otherwise preserves parent gradient
+  // Dynamic gradient selection: defaults to income green when credit matches, otherwise preserves parent gradient
   const cardGradient = isCredit
     ? "from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20"
     : gradient;
@@ -67,7 +70,13 @@ export function SummaryCard({
           {loading ? (
             <div className="h-8 w-24 animate-pulse rounded-lg bg-background/60" />
           ) : (
-            <p className="text-3xl font-extrabold tracking-tight">{value}</p>
+            <p
+              className={`text-3xl font-extrabold tracking-tight ${
+                isCredit ? "text-emerald-400" : ""
+              }`}
+            >
+              {value}
+            </p>
           )}
         </div>
       </CardContent>
