@@ -3,13 +3,14 @@
 migrate((app) => {
   const categoriesCol = app.findCollectionByNameOrId("categories");
 
-  // Prevent duplicate creation if Housing already exists
   try {
     app.findFirstRecordByData("categories", "name", "Housing");
   } catch (_) {
     const record = new Record(categoriesCol);
     record.set("name", "Housing");
-    app.save(record);
+
+    // Use saveNoValidate to allow system-seeded categories without an assigned user ID
+    app.saveNoValidate(record);
   }
 }, (app) => {
   try {
