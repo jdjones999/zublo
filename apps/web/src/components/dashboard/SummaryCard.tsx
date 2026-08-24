@@ -2,8 +2,7 @@ import React from "react";
 import { TrendingUp } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+import { isCreditItem } from "@/lib/utils";
 
 export function SummaryCard({
   title,
@@ -24,9 +23,7 @@ export function SummaryCard({
   gradient: string;
   isCredit?: boolean;
 }) {
-  const titleLower = title ? title.toLowerCase() : "";
-  const isCredit =
-    explicitIsCredit ?? CREDIT_KEYWORDS.some((kw) => titleLower.includes(kw));
+  const isCredit = explicitIsCredit ?? isCreditItem(title);
 
   // Dynamic gradient selection: defaults to income green when credit matches, otherwise preserves parent gradient
   const cardGradient = isCredit
