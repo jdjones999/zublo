@@ -9,6 +9,10 @@ import { paymentMethodsService } from "@/services/paymentMethods";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Currency, PaymentMethod, Subscription } from "@/types";
 
+// ── Credit/Income Keyword Helper ─────────────────────────────────────────────
+
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+
 // ── Payment method icon helpers ───────────────────────────────────────────────
 
 const PAYMENT_ICON_MAP: Record<string, string> = {
@@ -106,10 +110,11 @@ export function SubscriptionCard({
     ? subscriptionProgress(sub.start_date, sub.next_payment)
     : 0;
 
-  // ---------------------------------------------------------------------------
-  // [MODIFIED CODE]: Check if subscription name includes "bonus" (case-insensitive)
-  // ---------------------------------------------------------------------------
-  const isBonus = sub.name?.toLowerCase().includes("bonus");
+  // Check if subscription name includes any credit keyword
+  const subNameLower = sub.name?.toLowerCase() || "";
+  const isCredit = CREDIT_KEYWORDS.some((keyword) =>
+    subNameLower.includes(keyword)
+  );
 
   return (
     <div
@@ -149,16 +154,13 @@ export function SubscriptionCard({
         </div>
         
         <div className="text-right">
-          {/* ----------------------------------------------------------------- */}
-          {/* [MODIFIED CODE]: Dynamically add text-emerald-500 when isBonus is true */}
-          {/* ----------------------------------------------------------------- */}
           <p
             className={cn(
-            "font-extrabold text-xl font-mono tracking-tight",
-            isBonus ? "text-[#10b981]" : "text-foreground"
+              "font-extrabold text-xl font-mono tracking-tight",
+              isCredit ? "text-[#10b981]" : "text-foreground"
             )}
           >
-          {formatPrice(price, symbol)}
+            {formatPrice(price, symbol)}
           </p>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
             {showMonthly ? t("monthly") : cycleName}
