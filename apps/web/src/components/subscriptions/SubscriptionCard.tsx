@@ -1,13 +1,13 @@
-import { Calendar,Copy, Edit, ExternalLink, RefreshCw, Trash2 } from "lucide-react";
+import { Calendar, Copy, Edit, ExternalLink, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { cn,daysUntil, formatDate, formatPrice, subscriptionProgress, toMainCurrency, toMonthly } from "@/lib/utils";
+import { cn, daysUntil, formatDate, formatPrice, subscriptionProgress, toMainCurrency, toMonthly } from "@/lib/utils";
 import { paymentMethodsService } from "@/services/paymentMethods";
 import { subscriptionsService } from "@/services/subscriptions";
-import type { Currency, PaymentMethod,Subscription } from "@/types";
+import type { Currency, PaymentMethod, Subscription } from "@/types";
 
 // ── Payment method icon helpers ───────────────────────────────────────────────
 
@@ -106,6 +106,11 @@ export function SubscriptionCard({
     ? subscriptionProgress(sub.start_date, sub.next_payment)
     : 0;
 
+  // ---------------------------------------------------------------------------
+  // [MODIFIED CODE]: Check if subscription name includes "bonus" (case-insensitive)
+  // ---------------------------------------------------------------------------
+  const isBonus = sub.name?.toLowerCase().includes("bonus");
+
   return (
     <div
       className={cn(
@@ -144,7 +149,15 @@ export function SubscriptionCard({
         </div>
         
         <div className="text-right">
-          <p className="font-extrabold text-xl font-mono text-foreground tracking-tight">
+          {/* ----------------------------------------------------------------- */}
+          {/* [MODIFIED CODE]: Dynamically add text-emerald-500 when isBonus is true */}
+          {/* ----------------------------------------------------------------- */}
+          <p
+            className={cn(
+              "font-extrabold text-xl font-mono tracking-tight",
+              isBonus ? "text-emerald-500" : "text-foreground"
+            )}
+          >
             {formatPrice(price, symbol)}
           </p>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
