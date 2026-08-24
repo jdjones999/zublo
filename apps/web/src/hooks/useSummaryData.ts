@@ -16,7 +16,7 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
         titleLower.includes(keyword)
       );
 
-      // Convert cost based on billing cycle
+      // Convert price based on billing cycle
       let monthlyCost = sub.price || 0;
       if (sub.billing_cycle === "yearly") {
         monthlyCost /= 12;
@@ -29,6 +29,7 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       if (isCredit) {
         totalBonusCredits += monthlyCost;
       } else {
+        // Only non-credit items contribute to debt totals
         totalMonthly += monthlyCost;
       }
     });
