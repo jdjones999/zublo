@@ -24,6 +24,8 @@ interface BudgetOverviewCardProps {
   formatValue: (value: number) => string;
 }
 
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+
 export function BudgetOverviewCard({
   budget,
   budgetUsed,
@@ -34,6 +36,16 @@ export function BudgetOverviewCard({
   formatValue,
 }: BudgetOverviewCardProps) {
   const { t } = useTranslation();
+
+  // Evaluate if the passed item is an income/credit record
+  const isCredit = mostExpensive
+    ? CREDIT_KEYWORDS.some((kw) =>
+        mostExpensive.name.toLowerCase().trim().includes(kw),
+      )
+    : false;
+
+  // Render the bottom block only if it is a standard expense
+  const displayMostExpensive = mostExpensive && !isCredit ? mostExpensive : null;
 
   return (
     <Card className="flex flex-col overflow-hidden rounded-3xl border shadow-sm">
@@ -110,18 +122,18 @@ export function BudgetOverviewCard({
           </div>
         )}
 
-        {mostExpensive ? (
+        {displayMostExpensive ? (
           <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background text-sm font-bold shadow-sm">
-              {mostExpensive.logo ? (
+              {displayMostExpensive.logo ? (
                 <img
-                  src={subscriptionsService.logoUrl(mostExpensive.record) ?? ""}
-                  alt={mostExpensive.name}
+                  src={subscriptionsService.logoUrl(displayMostExpensive.record) ?? ""}
+                  alt={displayMostExpensive.name}
                   className="h-full w-full rounded-xl object-cover p-0.5"
                 />
               ) : (
                 <span className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
-                  {mostExpensive.name[0]?.toUpperCase()}
+                  {displayMostExpensive.name[0]?.toUpperCase()}
                 </span>
               )}
             </div>
@@ -130,11 +142,11 @@ export function BudgetOverviewCard({
                 {t("most_expensive_sub")}
               </p>
               <p className="truncate text-sm font-semibold text-foreground">
-                {mostExpensive.name}
+                {displayMostExpensive.name}
               </p>
             </div>
             <span className="shrink-0 text-base font-bold text-primary">
-              {formatValue(mostExpensive.monthly)}
+              {formatValue(displayMostExpensive.monthly)}
             </span>
           </div>
         ) : null}
