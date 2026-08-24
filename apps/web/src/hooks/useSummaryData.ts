@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Subscription } from "@/types";
 
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+const CREDIT_TYPES = ["bonus", "dividend", "commission", "income"];
 
 export function useSummaryData(subscriptions: Subscription[] = []) {
   return useMemo(() => {
@@ -12,9 +12,10 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
       if (sub.inactive) return;
 
       const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
-      const isCredit = CREDIT_KEYWORDS.some((kw) => titleLower.includes(kw));
+      const categoryName = sub.expand?.category?.name
+        ? sub.expand.category.name.toLowerCase().trim()
+        : "";
 
-      // Resolve cycle across relations and fallback properties
       const cycleName = (
         sub.expand?.cycle?.name ||
         sub.billing_cycle ||
@@ -22,34 +23,47 @@ export function useSummaryData(subscriptions: Subscription[] = []) {
         "monthly"
       )
         .toString()
-        .toLowerCase();
+        .toLowerCase()
+        .trim();
 
       const frequency = sub.frequency || 1;
       const rawPrice = sub.price || 0;
-      let monthlyCost = rawPrice;
 
+      // Check Category OR Title against Credit Keywords
+      const isCreditCategoryOrTitle = CREDIT_TYPES.some(
+        (type) => titleLower.includes(type) || categoryName.includes(type)
+      );
+
+      // Check for Cycle = "One-Time" and Frequency = 1
+      const isOneTime =
+        cycleName.includes("one") || cycleName.includes("once") || cycleName === "one-time";
+
+      const isCreditItem = isCreditCategoryOrTitle && isOneTime && frequency === 1;
+
+      if (isCreditItem) {
+        // Exclude completely from recurring G() / monthly cost calculation
+        totalBonusCredits += rawPrice;
+        return;
+      }
+
+      // Calculate standard recurring monthly cost
+      let monthlyCost = rawPrice;
       if (cycleName.includes("year")) {
         monthlyCost = rawPrice / (12 * frequency);
       } else if (cycleName.includes("week")) {
         monthlyCost = (rawPrice * (52 / 12)) / frequency;
       } else if (cycleName.includes("day")) {
         monthlyCost = (rawPrice * 30.44) / frequency;
-      } else if (cycleName.includes("one") || cycleName.includes("once")) {
-        monthlyCost = rawPrice / frequency;
       } else {
         monthlyCost = rawPrice / frequency;
       }
 
-      if (isCredit) {
-        totalBonusCredits += monthlyCost;
-      } else {
-        totalMonthly += monthlyCost;
-      }
+      totalMonthly += monthlyCost;
     });
 
     return {
       totalMonthly,
-      totalBonusCredits,
+      totalBonusCredits, // Exposed for separate remaining balance additions
       totalYearly: totalMonthly * 12,
       totalWeekly: totalMonthly / (52 / 12),
       totalDaily: totalMonthly / 30.44,
