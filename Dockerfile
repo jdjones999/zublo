@@ -1,40 +1,43 @@
-# Stage 1: Build the frontend
-FROM node:20-alpine AS frontend-builder
+# ── Stage 1: Build the frontend ─────────────────────────────
+FROM node:20-alpine AS web-builder
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Install Bun
+RUN apk add --no-cache curl && curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Copy web files and install
 COPY apps/web/package.json apps/web/bun.lock* ./
-RUN npm install -g bun
 RUN bun install
 
-# Copy the frontend source
+# Copy the rest of the web app
 COPY apps/web/ ./
-
-# Build the frontend
 RUN bun run build
 
-# Stage 2: Setup PocketBase and copy frontend
+
+# ── Stage 2: PocketBase backend ─────────────────────────────
 FROM alpine:3.20
 
 WORKDIR /pb
 
-# Install wget for healthcheck
-RUN apk add --no-cache wget ca-certificates
+# Install needed tools
+RUN apk add --no-cache wget ca-certificates unzip
 
-# Copy the PocketBase backend files
+# Copy PocketBase hooks & migrations
 COPY apps/backend/pb_hooks ./pb_hooks
 COPY apps/backend/pb_migrations ./pb_migrations
-COPY apps/backend/entrypoint.sh ./entrypoint.sh
 
-# Make entrypoint executable
-RUN chmod +x ./entrypoint.sh
+# 🔥 CRITICAL: Download the PocketBase binary
+RUN wget -q https://github.com/pocketbase/pocketbase/releases/download/v0.22.0/pocketbase_0.22.0_linux_amd64.zip -O /tmp/pb.zip \
+    && unzip -o /tmp/pb.zip -d /pb \
+    && rm /tmp/pb.zip
 
 # Copy the built frontend into PocketBase's public folder
-COPY --from=frontend-builder /app/dist /pb/pb_public
+COPY --from=web-builder /app/dist /pb/pb_public
 
 # Expose port
 EXPOSE 9597
 
-# Run the app
-ENTRYPOINT ["./entrypoint.sh"]
+# Run PocketBase directly
+CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:9597"]
