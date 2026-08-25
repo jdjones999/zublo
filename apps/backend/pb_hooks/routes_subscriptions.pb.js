@@ -141,6 +141,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
       let name, price, currencyId, cycleId, frequency, nextPayment;
       let autoRenew, inactive, notes, url, notify, notifyDaysBefore, cancellationDate;
       let categoryId, paymentMethodId, payerId;
+      let isIncome; // NEW: Track income/debit status
 
       if (isWallos) {
         // ── Wallos format ──
@@ -153,6 +154,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
         notify = sub["Notifications"] === "Enabled";
         notifyDaysBefore = 3;
         cancellationDate = sub["Cancellation Date"] || "";
+        isIncome = false; // Wallos imports are typically expenses
 
         // "€9.99" → symbol="€", price=9.99
         const priceInfo = importParsers.parseWallosPrice(sub["Price"]);
@@ -180,6 +182,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
         notify = !!sub.notify;
         notifyDaysBefore = sub.notify_days_before || 3;
         cancellationDate = sub.cancellation_date || "";
+        isIncome = !!sub.is_income; // NEW: Read from own export
 
         currencyId = (sub.currency ? findCurrencyByCode(sub.currency) : "") || mainCurrencyId;
         cycleId = findCycleByName(sub.cycle || "Monthly");
@@ -212,6 +215,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
       rec.set("notify_days_before", notifyDaysBefore);
       rec.set("notes", notes);
       rec.set("url", url);
+      rec.set("is_income", isIncome); // NEW: Set the field
       if (cancellationDate) rec.set("cancellation_date", cancellationDate);
       if (currencyId) rec.set("currency", currencyId);
       if (cycleId) rec.set("cycle", cycleId);
@@ -257,6 +261,7 @@ routerAdd("POST", "/api/subscription/clone", (e) => {
     "start_date", "notes", "url", "notify", "notify_days_before",
     "inactive", "cancellation_date", "currency", "cycle",
     "payment_method", "payer", "category", "user",
+    "is_income", // NEW: Add is_income to clone
   ];
 
   for (const field of fieldsToCopy) {
@@ -369,6 +374,7 @@ routerAdd("GET", "/api/subscriptions/export", (e) => {
       notes: sub.get("notes"),
       url: sub.get("url"),
       cancellation_date: sub.get("cancellation_date"),
+      is_income: sub.get("is_income"), // NEW: Export is_income
     });
   }
 
