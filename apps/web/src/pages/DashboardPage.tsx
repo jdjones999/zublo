@@ -91,6 +91,10 @@ export function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* 
+          NOTE: The 4 SummaryCards will now show the GROSS total (Expenses + Income). 
+          If you want them to show ONLY Expenses, you need to pass `summaryData.totalMonthly - summaryData.totalBonus` instead.
+        */}
         <SummaryCard
           title={t("total_monthly")}
           value={summaryData ? formatValue(summaryData.totalMonthly) : "—"}
@@ -124,11 +128,16 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <CostHistoryCard data={chartData} formatValue={formatValue} />
 
+        {/* 
+          ✅ KEY FIX: Pass `totalBonus` so the Budget card can ADD income 
+          to the remaining budget and show it in green.
+        */}
         <BudgetOverviewCard
           budget={budget}
           budgetUsed={budgetUsed}
           isOverBudget={isOverBudget}
           totalMonthly={summaryData?.totalMonthly}
+          totalBonus={summaryData?.totalBonus} // ✅ Added this line
           subscriptionsCount={summaryData?.count}
           mostExpensive={summaryData?.mostExpensive}
           formatValue={formatValue}
