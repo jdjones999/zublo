@@ -45,6 +45,9 @@ interface Props {
   household: Household[];
   onClose: () => void;
   onSaved: () => void;
+  // NEW: Added to allow pre-filling for "Dividend" or "Commission"
+  initialCategory?: string;
+  initialName?: string;
 }
 
 export function SubscriptionFormModal({
@@ -56,6 +59,8 @@ export function SubscriptionFormModal({
   household,
   onClose,
   onSaved,
+  initialCategory = "",
+  initialName = "",
 }: Props) {
   const { t } = useTranslation();
 
@@ -68,7 +73,14 @@ export function SubscriptionFormModal({
     cycles,
     selectedCurrency,
     formState: { errors, isSubmitting },
-  } = useSubscriptionForm({ sub, currencies, household });
+  } = useSubscriptionForm({ 
+    sub, 
+    currencies, 
+    household, 
+    // Pass the new props to the hook
+    defaultName: initialName,
+    defaultCategory: initialCategory 
+  });
 
   const watchedNotify = watch("notify");
   const watchedInactive = watch("inactive");
@@ -277,7 +289,7 @@ export function SubscriptionFormModal({
             </div>
           </div>
 
-          {/* Category + Payer */}
+          {/* Category + Payer (Pays: Me) */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>{t("category")}</Label>
