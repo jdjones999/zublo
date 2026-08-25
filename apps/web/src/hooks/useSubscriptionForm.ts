@@ -31,6 +31,7 @@ const _schemaShape = z.object({
   inactive: z.boolean(),
   auto_mark_paid: z.boolean(),
   cancellation_date: z.string(),
+  is_income: z.boolean(), // ✅ ADDED
 });
 
 export type SubscriptionFormValues = z.infer<typeof _schemaShape>;
@@ -39,7 +40,6 @@ interface UseSubscriptionFormInput {
   sub: Subscription | null;
   currencies: Currency[];
   household: Household[];
-  // NEW: Added these to allow pre-filling for "Dividend" or "Commission"
   defaultName?: string;
   defaultCategory?: string;
 }
@@ -60,7 +60,7 @@ export function useSubscriptionForm({
   sub,
   currencies,
   household,
-  defaultName = "Bonus", // Default to "Bonus" if nothing passed
+  defaultName = "Bonus",
   defaultCategory = "Bonus",
 }: UseSubscriptionFormInput) {
   const { t } = useTranslation();
@@ -89,6 +89,7 @@ export function useSubscriptionForm({
     inactive: z.boolean(),
     auto_mark_paid: z.boolean(),
     cancellation_date: z.string(),
+    is_income: z.boolean(), // ✅ ADDED
   });
 
   const form = useForm<SubscriptionFormValues>({
@@ -112,6 +113,7 @@ export function useSubscriptionForm({
       inactive: false,
       auto_mark_paid: false,
       cancellation_date: "",
+      is_income: false, // ✅ ADDED (Default to false for expenses)
     },
   });
 
@@ -139,12 +141,12 @@ export function useSubscriptionForm({
         inactive: sub.inactive,
         auto_mark_paid: !!sub.auto_mark_paid,
         cancellation_date: toDateOnly(sub.cancellation_date),
+        is_income: !!sub.is_income, // ✅ ADDED
       });
     } else {
       const mainCur = currencies.find((c) => c.is_main);
       const monthCycle = cycles.find((c) => c.name === "Monthly");
       reset({
-        // UPDATED: Uses defaultName and defaultCategory passed as props
         name: defaultName,
         price: 0,
         currency: mainCur?.id || currencies[0]?.id || "",
@@ -153,7 +155,7 @@ export function useSubscriptionForm({
         next_payment: nextMonthDate(),
         start_date: new Date().toISOString().split("T")[0],
         payment_method: "",
-        payer: household[0]?.id || "", // "Pays: Me"
+        payer: household[0]?.id || "",
         category: defaultCategory,
         notes: "",
         url: "",
@@ -163,6 +165,7 @@ export function useSubscriptionForm({
         inactive: false,
         auto_mark_paid: false,
         cancellation_date: "",
+        is_income: ["Bonus", "Dividend", "Commission", "Income"].includes(defaultCategory), // ✅ ADDED: Auto-set to true for credit categories
       });
     }
   }, [sub, currencies, cycles, household, reset, defaultName, defaultCategory]);
