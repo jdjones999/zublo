@@ -6,8 +6,6 @@ import type {
 } from "@/components/subscriptions/subscriptionsPage.types";
 import type { Subscription } from "@/types";
 
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
-
 interface UseFilteredSubscriptionsParams {
   subscriptions: Subscription[];
   searchTerm: string;
@@ -26,17 +24,8 @@ export function useFilteredSubscriptions({
   disabledToBottom,
 }: UseFilteredSubscriptionsParams) {
   return useMemo(() => {
-    // 1. Exclude credit/income items from standard subscription calculations
-    let result = subscriptions.filter((subscription) => {
-      const titleLower = subscription.name ? subscription.name.toLowerCase().trim() : "";
-      const categoryName = subscription.expand?.category?.name ?? "";
-      const categoryLower = categoryName.toLowerCase().trim();
-
-      const isCredit = CREDIT_KEYWORDS.some(
-        (keyword) => titleLower.includes(keyword) || categoryLower.includes(keyword)
-      );
-      return !isCredit;
-    });
+    // ✅ FIXED: Do NOT exclude credit/income items. Let them show up and turn green!
+    let result = subscriptions;
 
     // 2. Filter by search term
     if (searchTerm) {
