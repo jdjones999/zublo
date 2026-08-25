@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ChangeEvent,useRef, useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SubscriptionFormModal } from "@/components/SubscriptionFormModal";
@@ -44,6 +44,9 @@ export function SubscriptionsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  // NEW: State to track which category to pre-fill (Bonus, Dividend, Commission)
+  const [createCategory, setCreateCategory] = useState<string>("");
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: queryKeys.subscriptions.all(userId),
@@ -198,8 +201,10 @@ export function SubscriptionsPage() {
     setSortDir((current) => (current === "asc" ? "desc" : "asc"));
   };
 
-  const handleCreate = () => {
+  // UPDATED: Accepts an optional category to pre-fill the form
+  const handleCreate = (categoryName: string = "") => {
     setEditSubscription(null);
+    setCreateCategory(categoryName); // Set the state (Bonus, Dividend, Commission, or empty)
     setShowForm(true);
   };
 
@@ -215,7 +220,7 @@ export function SubscriptionsPage() {
         isImporting={isImporting}
         onImportChange={handleImportFile}
         onExport={handleExport}
-        onCreate={handleCreate}
+        onCreate={handleCreate} // Pass the updated function
       />
 
       <SubscriptionsToolbar
@@ -262,6 +267,9 @@ export function SubscriptionsPage() {
               queryKey: queryKeys.subscriptions.all(userId),
             });
           }}
+          // UPDATED: Pass the category to pre-fill the Name and Category fields
+          initialCategory={createCategory}
+          initialName={createCategory}
         />
       ) : null}
 
