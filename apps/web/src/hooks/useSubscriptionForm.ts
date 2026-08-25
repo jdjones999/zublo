@@ -39,6 +39,9 @@ interface UseSubscriptionFormInput {
   sub: Subscription | null;
   currencies: Currency[];
   household: Household[];
+  // NEW: Added these to allow pre-filling for "Dividend" or "Commission"
+  defaultName?: string;
+  defaultCategory?: string;
 }
 
 const nextMonthDate = () => {
@@ -57,6 +60,8 @@ export function useSubscriptionForm({
   sub,
   currencies,
   household,
+  defaultName = "Bonus", // Default to "Bonus" if nothing passed
+  defaultCategory = "Bonus",
 }: UseSubscriptionFormInput) {
   const { t } = useTranslation();
 
@@ -139,7 +144,8 @@ export function useSubscriptionForm({
       const mainCur = currencies.find((c) => c.is_main);
       const monthCycle = cycles.find((c) => c.name === "Monthly");
       reset({
-        name: "",
+        // UPDATED: Uses defaultName and defaultCategory passed as props
+        name: defaultName,
         price: 0,
         currency: mainCur?.id || currencies[0]?.id || "",
         frequency: "1",
@@ -147,8 +153,8 @@ export function useSubscriptionForm({
         next_payment: nextMonthDate(),
         start_date: new Date().toISOString().split("T")[0],
         payment_method: "",
-        payer: household[0]?.id || "",
-        category: "",
+        payer: household[0]?.id || "", // "Pays: Me"
+        category: defaultCategory,
         notes: "",
         url: "",
         auto_renew: true,
@@ -159,7 +165,7 @@ export function useSubscriptionForm({
         cancellation_date: "",
       });
     }
-  }, [sub, currencies, cycles, household, reset]);
+  }, [sub, currencies, cycles, household, reset, defaultName, defaultCategory]);
 
   const watchedCurrency = watch("currency");
   const selectedCurrency = currencies.find((c) => c.id === watchedCurrency);
