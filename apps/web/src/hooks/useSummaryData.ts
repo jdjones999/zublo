@@ -22,8 +22,8 @@ export function useSummaryData(userId: string) {
       const mainRate = mainCurrency?.rate ?? 1;
       const mainSymbol = mainCurrency?.symbol ?? "$";
 
-      let totalMonthly = 0;
-      let totalBonus = 0;
+      let totalMonthlyExpenses = 0;
+      let totalMonthlyIncome = 0;
       let mostExpensive: {
         id: string;
         name: string;
@@ -51,17 +51,16 @@ export function useSummaryData(userId: string) {
         const rawMainPrice = (sub.price / rate) * mainRate;
 
         if (isCreditItem) {
-          // Calculate monthly credit value
+          // ✅ Add income to the budget (not subtract from expenses)
           const monthlyCredit = toMonthly(sub.price, cycleName, frequency);
           const monthlyMainCredit = (monthlyCredit / rate) * mainRate;
-
-          totalBonus += monthlyMainCredit;
+          totalMonthlyIncome += monthlyMainCredit;
         } else {
           // Calculate standard recurring debt expense
           const monthly = toMonthly(sub.price, cycleName, frequency);
           const monthlyMain = (monthly / rate) * mainRate;
 
-          totalMonthly += monthlyMain;
+          totalMonthlyExpenses += monthlyMain;
 
           if (!mostExpensive || monthlyMain > mostExpensive.monthly) {
             mostExpensive = {
@@ -75,15 +74,16 @@ export function useSummaryData(userId: string) {
         }
       }
 
-      // ✅ NEW: Subtract credits from expenses to get the *net* total
-      const netMonthly = totalMonthly - totalBonus;
+      // ✅ NEW: Total Monthly is Gross (Expenses + Income). 
+      // In your BudgetOverviewCard, you will subtract this from the Monthly Budget.
+      const totalMonthly = totalMonthlyExpenses + totalMonthlyIncome;
 
       return {
-        totalMonthly: netMonthly, // This is now the net spend (expenses - incomes)
-        totalBonus, // Keep this if you still want to display the total credit separately
-        totalYearly: netMonthly * 12,
-        totalWeekly: (netMonthly * 12) / 52,
-        totalDaily: (netMonthly * 12) / 365,
+        totalMonthly, // This now includes both expenses and income (gross)
+        totalBonus: totalMonthlyIncome, // Keep this if you want to display total credit separately
+        totalYearly: totalMonthly * 12,
+        totalWeekly: (totalMonthly * 12) / 52,
+        totalDaily: (totalMonthly * 12) / 365,
         mainSymbol,
         count: subs.length,
         mostExpensive,
