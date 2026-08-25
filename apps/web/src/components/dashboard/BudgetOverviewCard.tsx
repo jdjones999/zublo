@@ -47,6 +47,12 @@ export function BudgetOverviewCard({
   // Render the bottom block only if it is a standard expense
   const displayMostExpensive = mostExpensive && !isCredit ? mostExpensive : null;
 
+  // ✅ NEW: Calculate remaining budget. Credits (Bonus, Dividend, etc.) ADD to the remaining budget.
+  const remainingBudget = typeof totalMonthly === "number" ? budget - totalMonthly : 0;
+
+  // ✅ NEW: Determine if we have positive credits. If remaining budget is greater than 0, and totalMonthly is 0 or lower, show green.
+  const hasCredit = remainingBudget > budget || (typeof totalMonthly === "number" && totalMonthly < 0);
+
   return (
     <Card className="flex flex-col overflow-hidden rounded-3xl border shadow-sm">
       <CardHeader className="border-b bg-muted/30 pb-4">
@@ -61,7 +67,7 @@ export function BudgetOverviewCard({
                 <p
                   className={cn(
                     "text-3xl font-bold tracking-tight",
-                    isOverBudget ? "text-destructive" : "text-primary",
+                    hasCredit ? "text-green-500" : isOverBudget ? "text-destructive" : "text-primary",
                   )}
                 >
                   {typeof totalMonthly === "number" ? formatValue(totalMonthly) : "—"}
@@ -81,6 +87,7 @@ export function BudgetOverviewCard({
                 className={cn(
                   "h-3 rounded-full",
                   isOverBudget && "[&>div]:bg-destructive",
+                  hasCredit && "[&>div]:bg-green-500",
                 )}
               />
               <div className="flex justify-between text-xs font-medium">
@@ -89,6 +96,7 @@ export function BudgetOverviewCard({
                     isOverBudget
                       ? "font-bold text-destructive"
                       : "text-muted-foreground",
+                    hasCredit && "font-bold text-green-500",
                   )}
                 >
                   {budgetUsed.toFixed(1)}% {t("budget_used").toLowerCase()}
@@ -100,9 +108,9 @@ export function BudgetOverviewCard({
                 ) : (
                   <span className="text-muted-foreground">
                     {t("budget_remaining")}:{" "}
-                    <span className="font-semibold text-foreground">
+                    <span className={cn("font-semibold", hasCredit ? "text-green-500" : "text-foreground")}>
                       {typeof totalMonthly === "number"
-                        ? formatValue(budget - totalMonthly)
+                        ? formatValue(remainingBudget)
                         : "—"}
                     </span>
                   </span>
