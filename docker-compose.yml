@@ -1,7 +1,7 @@
 name: zublo
 services:
   app:
-    image: ghcr.io/danielalves96/zublo:latest
+    image: ghcr.io/jdjones999/zublo:latest
     container_name: zublo
     restart: always
     ports:
