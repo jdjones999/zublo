@@ -107,6 +107,7 @@ export function SubscriptionFormModal({
         inactive: data.inactive,
         auto_mark_paid: data.auto_mark_paid,
         cancellation_date: data.cancellation_date || null,
+        is_income: data.is_income, // ✅ ADDED: Ensure is_income is sent to the backend
         user: userId,
       };
 
