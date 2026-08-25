@@ -74,6 +74,11 @@ export function DashboardPage() {
   const formatValue = (value: number) =>
     formatPrice(value, summaryData?.mainSymbol ?? "$");
 
+  // ✅ KEY FIX: Calculate the NET monthly value (Expenses - Income)
+  const netMonthly = summaryData
+    ? summaryData.totalMonthly - summaryData.totalBonus
+    : 0;
+
   const { budget, budgetUsed, chartData, isOverBudget } =
     useDashboardDerivedData({
       user,
@@ -92,33 +97,32 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* 
-          NOTE: The 4 SummaryCards will now show the GROSS total (Expenses + Income). 
-          If you want them to show ONLY Expenses, you need to pass `summaryData.totalMonthly - summaryData.totalBonus` instead.
+          ✅ FIXED: Now passing NET values so Dividend actually subtracts from your expenses.
         */}
         <SummaryCard
           title={t("total_monthly")}
-          value={summaryData ? formatValue(summaryData.totalMonthly) : "—"}
+          value={summaryData ? formatValue(netMonthly) : "—"}
           icon={<DollarSign className="h-6 w-6 text-blue-500" />}
           loading={summary.isLoading}
           gradient="from-blue-500/10 to-transparent border-blue-500/20"
         />
         <SummaryCard
           title={t("total_yearly")}
-          value={summaryData ? formatValue(summaryData.totalYearly) : "—"}
+          value={summaryData ? formatValue(netMonthly * 12) : "—"}
           icon={<Calendar className="h-6 w-6 text-green-500" />}
           loading={summary.isLoading}
           gradient="from-green-500/10 to-transparent border-green-500/20"
         />
         <SummaryCard
           title={t("total_weekly")}
-          value={summaryData ? formatValue(summaryData.totalWeekly) : "—"}
+          value={summaryData ? formatValue((netMonthly * 12) / 52) : "—"}
           icon={<TrendingUp className="h-6 w-6 text-purple-500" />}
           loading={summary.isLoading}
           gradient="from-purple-500/10 to-transparent border-purple-500/20"
         />
         <SummaryCard
           title={t("total_daily")}
-          value={summaryData ? formatValue(summaryData.totalDaily) : "—"}
+          value={summaryData ? formatValue((netMonthly * 12) / 365) : "—"}
           icon={<BarChart2 className="h-6 w-6 text-orange-500" />}
           loading={summary.isLoading}
           gradient="from-orange-500/10 to-transparent border-orange-500/20"
@@ -129,15 +133,16 @@ export function DashboardPage() {
         <CostHistoryCard data={chartData} formatValue={formatValue} />
 
         {/* 
-          ✅ KEY FIX: Pass `totalBonus` so the Budget card can ADD income 
-          to the remaining budget and show it in green.
+          ✅ FIXED: Passing totalBonus so it ADDS to the remaining budget and shows green.
+          Note: `totalMonthly` here is the GROSS total (Expenses + Income). 
+          The card uses (Budget - Gross) + Bonus = Net Remaining Budget.
         */}
         <BudgetOverviewCard
           budget={budget}
           budgetUsed={budgetUsed}
           isOverBudget={isOverBudget}
           totalMonthly={summaryData?.totalMonthly}
-          totalBonus={summaryData?.totalBonus} // ✅ Added this line
+          totalBonus={summaryData?.totalBonus}
           subscriptionsCount={summaryData?.count}
           mostExpensive={summaryData?.mostExpensive}
           formatValue={formatValue}
