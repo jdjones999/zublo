@@ -10,7 +10,16 @@ export function cn(...inputs: ClassValue[]) {
 
 // ── Credit / Income Keyword Helpers ──────────────────────────────────────────
 
-export const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+// ✅ UPDATED: Broadened to catch "Dividend Income", "Bonuses", "Interest", etc.
+export const CREDIT_KEYWORDS = [
+  "bonus", 
+  "dividend", 
+  "commission", 
+  "income", 
+  "interest", 
+  "refund", 
+  "cashback"
+];
 
 /**
  * Checks if a subscription item is an incoming credit (bonus, dividend, commission, income)
@@ -28,6 +37,10 @@ export function isCreditItem(item?: string | Subscription | null): boolean {
   const categoryName = item.expand?.category?.name ?? "";
   const categoryLower = categoryName.toLowerCase().trim();
 
+  // ✅ UPDATED: Trust the database `is_income` flag FIRST
+  if (item.is_income === true) return true;
+
+  // Fallback to name/category keywords
   return CREDIT_KEYWORDS.some(
     (keyword) => titleLower.includes(keyword) || categoryLower.includes(keyword)
   );
