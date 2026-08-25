@@ -74,13 +74,13 @@ export function useSummaryData(userId: string) {
         }
       }
 
-      // ✅ NEW: Total Monthly is Gross (Expenses + Income). 
-      // In your BudgetOverviewCard, you will subtract this from the Monthly Budget.
-      const totalMonthly = totalMonthlyExpenses + totalMonthlyIncome;
+      // ✅ FIXED: Total Monthly is PURE EXPENSES. 
+      // This keeps the 4 top cards (Monthly/Yearly/Weekly/Daily) showing only expenses.
+      const totalMonthly = totalMonthlyExpenses;
 
       return {
-        totalMonthly, // This now includes both expenses and income (gross)
-        totalBonus: totalMonthlyIncome, // Keep this if you want to display total credit separately
+        totalMonthly, // Pure expenses - does NOT change when income is added
+        totalBonus: totalMonthlyIncome, // This is what ADDS to the remaining budget and turns it green
         totalYearly: totalMonthly * 12,
         totalWeekly: (totalMonthly * 12) / 52,
         totalDaily: (totalMonthly * 12) / 365,
