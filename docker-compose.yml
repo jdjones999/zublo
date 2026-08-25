@@ -1,7 +1,7 @@
 name: zublo
 services:
   app:
-    build: .  # ⬅️ THIS BUILDS YOUR LOCAL CODE. Change from 'image:' to 'build:'
+    build: https://github.com/jdjoness999/zublo.git#main  # ⬅️ Builds from YOUR GitHub
     container_name: zublo
     restart: always
     ports:
