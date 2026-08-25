@@ -6,6 +6,7 @@ import { currenciesService } from "@/services/currencies";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Subscription } from "@/types";
 
+// Keep this as a fallback for older data or imports
 const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 export function useSummaryData(userId: string) {
@@ -40,19 +41,17 @@ export function useSummaryData(userId: string) {
         const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
         const categoryLower = categoryName.toLowerCase().trim();
 
-        // Check if item is an income/credit stream
+        // ✅ NEW: Use the backend `is_income` flag first, fall back to keyword matching
         const isCreditKeyword = CREDIT_KEYWORDS.some(
           (kw) => titleLower.includes(kw) || categoryLower.includes(kw)
         );
-
-        // Treat any matching keyword as a credit stream
-        const isCreditItem = isCreditKeyword;
+        const isCreditItem = sub.is_income === true || isCreditKeyword;
 
         const rate = currency?.rate ?? 1;
         const rawMainPrice = (sub.price / rate) * mainRate;
 
         if (isCreditItem) {
-          // Calculate monthly credit value if recurring, or raw price if one-time
+          // Calculate monthly credit value
           const monthlyCredit = toMonthly(sub.price, cycleName, frequency);
           const monthlyMainCredit = (monthlyCredit / rate) * mainRate;
 
@@ -76,12 +75,15 @@ export function useSummaryData(userId: string) {
         }
       }
 
+      // ✅ NEW: Subtract credits from expenses to get the *net* total
+      const netMonthly = totalMonthly - totalBonus;
+
       return {
-        totalMonthly,
-        totalBonus, // Positive credit balance available for remaining budget
-        totalYearly: totalMonthly * 12,
-        totalWeekly: (totalMonthly * 12) / 52,
-        totalDaily: (totalMonthly * 12) / 365,
+        totalMonthly: netMonthly, // This is now the net spend (expenses - incomes)
+        totalBonus, // Keep this if you still want to display the total credit separately
+        totalYearly: netMonthly * 12,
+        totalWeekly: (netMonthly * 12) / 52,
+        totalDaily: (netMonthly * 12) / 365,
         mainSymbol,
         count: subs.length,
         mostExpensive,
