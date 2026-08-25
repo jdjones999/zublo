@@ -6,17 +6,8 @@ import { currenciesService } from "@/services/currencies";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Subscription } from "@/types";
 
-// ✅ FIXED: Broader list to catch any combination (e.g., "Dividend Income", "Interest")
-const CREDIT_KEYWORDS = [
-  "bonus", 
-  "dividend", 
-  "commission", 
-  "income", 
-  "dividend income", 
-  "interest", 
-  "refund", 
-  "cashback"
-];
+// FORCED credit names - this is the ONLY thing that matters
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 export function useSummaryData(userId: string) {
   return useQuery({
@@ -47,27 +38,23 @@ export function useSummaryData(userId: string) {
         const categoryName = sub.expand?.category?.name ?? "";
         const frequency = sub.frequency || 1;
 
+        // FORCED: Just look at the name or category. If it matches, it's a credit.
         const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
         const categoryLower = categoryName.toLowerCase().trim();
-
-        // ✅ FIXED: Smart check - look for ANY credit keyword, even if separated by spaces
-        const isCreditKeyword = CREDIT_KEYWORDS.some(
+        const isCreditItem = CREDIT_KEYWORDS.some(
           (kw) => titleLower.includes(kw) || categoryLower.includes(kw)
         );
-        
-        // ✅ Trust the database flag OR the name
-        const isCreditItem = sub.is_income === true || isCreditKeyword;
 
         const rate = currency?.rate ?? 1;
         const rawMainPrice = (sub.price / rate) * mainRate;
 
         if (isCreditItem) {
-          // ✅ Add income to the budget (not subtract from expenses)
+          // ✅ Add to income - NEVER counts as an expense
           const monthlyCredit = toMonthly(sub.price, cycleName, frequency);
           const monthlyMainCredit = (monthlyCredit / rate) * mainRate;
           totalMonthlyIncome += monthlyMainCredit;
         } else {
-          // Calculate standard recurring debt expense
+          // ✅ Add to expenses
           const monthly = toMonthly(sub.price, cycleName, frequency);
           const monthlyMain = (monthly / rate) * mainRate;
 
@@ -85,13 +72,12 @@ export function useSummaryData(userId: string) {
         }
       }
 
-      // ✅ FIXED: Total Monthly is PURE EXPENSES. 
-      // This keeps the 4 top cards (Monthly/Yearly/Weekly/Daily) showing only expenses.
+      // ✅ Pure expenses (does not include income)
       const totalMonthly = totalMonthlyExpenses;
 
       return {
-        totalMonthly, // Pure expenses - does NOT change when income is added
-        totalBonus: totalMonthlyIncome, // This is what ADDS to the remaining budget and turns it green
+        totalMonthly,
+        totalBonus: totalMonthlyIncome, // Income used for Budget Card
         totalYearly: totalMonthly * 12,
         totalWeekly: (totalMonthly * 12) / 52,
         totalDaily: (totalMonthly * 12) / 365,
