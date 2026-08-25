@@ -2,9 +2,6 @@
 
 // ================================================================
 // ROUTE: Subscriptions Import
-// NOTE: In PocketBase JSVM (Goja), file-scope helper bindings are not
-// reliably available inside router callbacks. Require helpers inside
-// each callback so the runtime can always resolve them at request time.
 // ================================================================
 routerAdd("POST", "/api/subscriptions/import", (e) => {
   const dateHelpers = require(__hooks + "/lib/date-helpers.js");
@@ -20,10 +17,8 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
     return e.json(400, { error: "No subscriptions to import" });
   }
 
-  // Detect format: Wallos uses PascalCase keys like "Name", "Payment Cycle"
   const isWallos = importParsers.detectWallosFormat(data.subscriptions[0]);
 
-  // ---- Lookup caches to avoid repeated DB queries ----
   const categoryCache = {};
   const paymentMethodCache = {};
   const payerCache = {};
@@ -47,12 +42,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
   function findOrCreateCategory(name) {
     if (!name) return "";
     if (categoryCache[name] !== undefined) return categoryCache[name];
-    const id = findOrCreate(
-      "categories",
-      "user = {:u} && name = {:n}",
-      { u: userId, n: name },
-      { user: userId, name: name }
-    );
+    const id = findOrCreate("categories", "user = {:u} && name = {:n}", { u: userId, n: name }, { user: userId, name: name });
     categoryCache[name] = id;
     return id;
   }
@@ -60,12 +50,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
   function findOrCreatePaymentMethod(name) {
     if (!name) return "";
     if (paymentMethodCache[name] !== undefined) return paymentMethodCache[name];
-    const id = findOrCreate(
-      "payment_methods",
-      "user = {:u} && name = {:n}",
-      { u: userId, n: name },
-      { user: userId, name: name }
-    );
+    const id = findOrCreate("payment_methods", "user = {:u} && name = {:n}", { u: userId, n: name }, { user: userId, name: name });
     paymentMethodCache[name] = id;
     return id;
   }
@@ -73,12 +58,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
   function findOrCreatePayer(name) {
     if (!name) return "";
     if (payerCache[name] !== undefined) return payerCache[name];
-    const id = findOrCreate(
-      "household",
-      "user = {:u} && name = {:n}",
-      { u: userId, n: name },
-      { user: userId, name: name }
-    );
+    const id = findOrCreate("household", "user = {:u} && name = {:n}", { u: userId, n: name }, { user: userId, name: name });
     payerCache[name] = id;
     return id;
   }
@@ -88,22 +68,16 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
     const key = code.toUpperCase();
     if (currencyByCodeCache[key] !== undefined) return currencyByCodeCache[key];
     try {
-      const rows = $app.findRecordsByFilter(
-        "currencies", "user = {:u} && code = {:c}", "", 1, 0, { u: userId, c: key }
-      );
+      const rows = $app.findRecordsByFilter("currencies", "user = {:u} && code = {:c}", "", 1, 0, { u: userId, c: key });
       currencyByCodeCache[key] = rows.length > 0 ? rows[0].id : "";
       return currencyByCodeCache[key];
     } catch (_) { return ""; }
   }
 
-  // Wallos only exports the currency symbol as prefix of the price string.
-  // Try to match against user's currencies first, then fall back to a common map.
   function findCurrencyBySymbol(symbol) {
     if (!symbol) return "";
     try {
-      const rows = $app.findRecordsByFilter(
-        "currencies", "user = {:u} && symbol = {:s}", "", 1, 0, { u: userId, s: symbol }
-      );
+      const rows = $app.findRecordsByFilter("currencies", "user = {:u} && symbol = {:s}", "", 1, 0, { u: userId, s: symbol });
       if (rows.length > 0) return rows[0].id;
     } catch (_) {}
     const symbolToCode = {
@@ -141,10 +115,9 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
       let name, price, currencyId, cycleId, frequency, nextPayment;
       let autoRenew, inactive, notes, url, notify, notifyDaysBefore, cancellationDate;
       let categoryId, paymentMethodId, payerId;
-      let isIncome; // NEW: Track income/debit status
+      let isIncome;
 
       if (isWallos) {
-        // ── Wallos format ──
         name = (sub["Name"] || "").trim();
         notes = sub["Notes"] || "";
         url = sub["URL"] || "";
@@ -154,9 +127,8 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
         notify = sub["Notifications"] === "Enabled";
         notifyDaysBefore = 3;
         cancellationDate = sub["Cancellation Date"] || "";
-        isIncome = false; // Wallos imports are typically expenses
+        isIncome = false;
 
-        // "€9.99" → symbol="€", price=9.99
         const priceInfo = importParsers.parseWallosPrice(sub["Price"]);
         let symbol = priceInfo.symbol;
         price = priceInfo.price;
@@ -171,7 +143,6 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
         payerId = findOrCreatePayer(sub["Paid By"]);
 
       } else {
-        // ── Own export format ──
         name = (sub.name || "").trim();
         price = parseFloat(sub.price) || 0;
         notes = sub.notes || "";
@@ -182,7 +153,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
         notify = !!sub.notify;
         notifyDaysBefore = sub.notify_days_before || 3;
         cancellationDate = sub.cancellation_date || "";
-        isIncome = !!sub.is_income; // NEW: Read from own export
+        isIncome = !!sub.is_income;
 
         currencyId = (sub.currency ? findCurrencyByCode(sub.currency) : "") || mainCurrencyId;
         cycleId = findCycleByName(sub.cycle || "Monthly");
@@ -215,7 +186,7 @@ routerAdd("POST", "/api/subscriptions/import", (e) => {
       rec.set("notify_days_before", notifyDaysBefore);
       rec.set("notes", notes);
       rec.set("url", url);
-      rec.set("is_income", isIncome); // NEW: Set the field
+      rec.set("is_income", isIncome);
       if (cancellationDate) rec.set("cancellation_date", cancellationDate);
       if (currencyId) rec.set("currency", currencyId);
       if (cycleId) rec.set("cycle", cycleId);
@@ -255,20 +226,18 @@ routerAdd("POST", "/api/subscription/clone", (e) => {
   const col = $app.findCollectionByNameOrId("subscriptions");
   const clone = new Record(col);
 
-  // Copy all fields except id
   const fieldsToCopy = [
     "name", "price", "frequency", "next_payment", "auto_renew",
     "start_date", "notes", "url", "notify", "notify_days_before",
     "inactive", "cancellation_date", "currency", "cycle",
     "payment_method", "payer", "category", "user",
-    "is_income", // NEW: Add is_income to clone
+    "is_income",
   ];
 
   for (const field of fieldsToCopy) {
     clone.set(field, original.get(field));
   }
 
-  // Logo needs special handling (file copy)
   $app.save(clone);
 
   return e.json(200, { id: clone.id, message: "Subscription cloned" });
@@ -299,7 +268,6 @@ routerAdd("POST", "/api/subscription/renew", (e) => {
   let nextPayment = new Date(sub.get("next_payment"));
   const today = new Date();
 
-  // Advance to next payment after today
   while (nextPayment <= today) {
     nextPayment = dateHelpers.advanceDate(nextPayment, cycleName, frequency);
   }
@@ -311,7 +279,7 @@ routerAdd("POST", "/api/subscription/renew", (e) => {
 });
 
 // ================================================================
-// ROUTE: Subscriptions Export
+// ROUTE: Subscription Export
 // ================================================================
 routerAdd("GET", "/api/subscriptions/export", (e) => {
   if (!e.auth) throw new ForbiddenError("Authentication required");
@@ -374,9 +342,34 @@ routerAdd("GET", "/api/subscriptions/export", (e) => {
       notes: sub.get("notes"),
       url: sub.get("url"),
       cancellation_date: sub.get("cancellation_date"),
-      is_income: sub.get("is_income"), // NEW: Export is_income
+      is_income: sub.get("is_income"),
     });
   }
 
   return e.json(200, { subscriptions: exported });
+});
+
+// ================================================================
+// ROUTE: Toggle Subscription Income/Expense Status
+// ================================================================
+routerAdd("POST", "/api/subscription/toggle-income", (e) => {
+  if (!e.auth) throw new ForbiddenError("Authentication required");
+  const data = e.requestInfo().body;
+  const subId = data.id;
+  const isIncome = !!data.is_income;
+
+  if (!subId) {
+    return e.json(400, { error: "Missing subscription id" });
+  }
+
+  const sub = $app.findRecordById("subscriptions", subId);
+
+  if (sub.get("user") !== e.auth.id) {
+    throw new ForbiddenError("Not your subscription");
+  }
+
+  sub.set("is_income", isIncome);
+  $app.save(sub);
+
+  return e.json(200, { id: sub.id, is_income: sub.get("is_income") });
 });
