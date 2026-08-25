@@ -6,8 +6,17 @@ import { currenciesService } from "@/services/currencies";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Subscription } from "@/types";
 
-// Keep this as a fallback for older data or imports
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
+// ✅ FIXED: Broader list to catch any combination (e.g., "Dividend Income", "Interest")
+const CREDIT_KEYWORDS = [
+  "bonus", 
+  "dividend", 
+  "commission", 
+  "income", 
+  "dividend income", 
+  "interest", 
+  "refund", 
+  "cashback"
+];
 
 export function useSummaryData(userId: string) {
   return useQuery({
@@ -41,10 +50,12 @@ export function useSummaryData(userId: string) {
         const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
         const categoryLower = categoryName.toLowerCase().trim();
 
-        // ✅ NEW: Use the backend `is_income` flag first, fall back to keyword matching
+        // ✅ FIXED: Smart check - look for ANY credit keyword, even if separated by spaces
         const isCreditKeyword = CREDIT_KEYWORDS.some(
           (kw) => titleLower.includes(kw) || categoryLower.includes(kw)
         );
+        
+        // ✅ Trust the database flag OR the name
         const isCreditItem = sub.is_income === true || isCreditKeyword;
 
         const rate = currency?.rate ?? 1;
