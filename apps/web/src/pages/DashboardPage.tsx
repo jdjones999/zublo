@@ -83,6 +83,15 @@ export function DashboardPage() {
 
   const userName = user?.name || user?.email?.split("@")[0] || "—";
 
+  // ✅ THE ULTIMATE FIX: Filter out any credit items from "Most Expensive" 
+  // by checking the CATEGORY or NAME.
+  const safeMostExpensive = summaryData?.mostExpensive 
+    ? (["bonus", "dividend", "commission", "income"].some(kw => 
+        summaryData.mostExpensive!.name.toLowerCase().includes(kw) || 
+        summaryData.mostExpensive!.record.expand?.category?.name?.toLowerCase().includes(kw)
+      ) ? null : summaryData.mostExpensive)
+    : null;
+
   return (
     <div className="animate-in slide-in-from-bottom-4 space-y-8 fade-in duration-500">
       <DashboardHeader
@@ -91,10 +100,6 @@ export function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* 
-          ✅ FIXED: Showing PURE EXPENSES (totalMonthly).
-          Dividends are NOT included here. They do not change these 4 cards.
-        */}
         <SummaryCard
           title={t("total_monthly")}
           value={summaryData ? formatValue(summaryData.totalMonthly) : "—"}
@@ -128,10 +133,6 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <CostHistoryCard data={chartData} formatValue={formatValue} />
 
-        {/* 
-          ✅ FIXED: Budget card uses pure EXPENSES (totalMonthly), 
-          and ADDS totalBonus (Dividend) back to the remaining budget.
-        */}
         <BudgetOverviewCard
           budget={budget}
           budgetUsed={budgetUsed}
@@ -139,7 +140,7 @@ export function DashboardPage() {
           totalMonthly={summaryData?.totalMonthly} // Pure expenses
           totalBonus={summaryData?.totalBonus}     // Dividend adds to budget
           subscriptionsCount={summaryData?.count}
-          mostExpensive={summaryData?.mostExpensive}
+          mostExpensive={safeMostExpensive}        // ✅ Pass the safe version
           formatValue={formatValue}
         />
       </div>
