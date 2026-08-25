@@ -201,10 +201,10 @@ export function SubscriptionsPage() {
     setSortDir((current) => (current === "asc" ? "desc" : "asc"));
   };
 
-  // UPDATED: Accepts an optional category to pre-fill the form
-  const handleCreate = (categoryName: string = "") => {
+  // ✅ FIXED: `handleCreate` now defaults to "Dividend" when no specific type is passed
+  const handleCreate = (categoryName: string = "Dividend") => {
     setEditSubscription(null);
-    setCreateCategory(categoryName); // Set the state (Bonus, Dividend, Commission, or empty)
+    setCreateCategory(categoryName);
     setShowForm(true);
   };
 
@@ -220,7 +220,7 @@ export function SubscriptionsPage() {
         isImporting={isImporting}
         onImportChange={handleImportFile}
         onExport={handleExport}
-        onCreate={handleCreate} // Pass the updated function
+        onCreate={handleCreate}
       />
 
       <SubscriptionsToolbar
@@ -267,7 +267,6 @@ export function SubscriptionsPage() {
               queryKey: queryKeys.subscriptions.all(userId),
             });
           }}
-          // UPDATED: Pass the category to pre-fill the Name and Category fields
           initialCategory={createCategory}
           initialName={createCategory}
         />
