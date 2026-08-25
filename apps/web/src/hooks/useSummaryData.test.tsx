@@ -20,7 +20,7 @@ export interface SummaryData {
   } | null;
 }
 
-const CREDIT_KEYWORDS = ["bonus", "commission", "dividend", "income"];
+const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 function isCreditItem(sub: Subscription): boolean {
   const name = sub.name?.toLowerCase() || "";
