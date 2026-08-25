@@ -1,71 +1,40 @@
-# ============================================================
-# Stage 1: Build frontend
-# ============================================================
-FROM oven/bun:1-alpine AS frontend-builder
+# Stage 1: Build the frontend
+FROM node:20-alpine AS frontend-builder
 
-WORKDIR /app/web
+WORKDIR /app
 
-COPY apps/web/package.json apps/web/bun.lock ./
+# Copy package files and install dependencies
+COPY apps/web/package.json apps/web/bun.lock* ./
+RUN npm install -g bun
 RUN bun install
 
-COPY apps/web/ .
+# Copy the frontend source
+COPY apps/web/ ./
 
-# Vite outputs to ../backend/pb_public (relative to apps/web)
-RUN mkdir -p /app/backend/pb_public && bun run build
+# Build the frontend
+RUN bun run build
 
-# ============================================================
-# Stage 2: Final image
-# ============================================================
+# Stage 2: Setup PocketBase and copy frontend
 FROM alpine:3.20
-
-ARG PB_VERSION=0.25.9
-ARG TARGETARCH
-ARG UID=1000
-ARG GID=1000
-
-RUN apk add --no-cache ca-certificates unzip wget su-exec
-
-# Download PocketBase for the target architecture
-RUN set -eux; \
-    case "$TARGETARCH" in \
-        amd64)  PB_ARCH="amd64"  ;; \
-        arm64)  PB_ARCH="arm64"  ;; \
-        arm*)   PB_ARCH="armv7"  ;; \
-        *)      echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
-    esac; \
-    wget -q \
-        "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_${PB_ARCH}.zip" \
-        -O /tmp/pb.zip; \
-    unzip /tmp/pb.zip pocketbase -d /pb; \
-    rm /tmp/pb.zip; \
-    chmod +x /pb/pocketbase
 
 WORKDIR /pb
 
-# Copy backend files (hooks, migrations, product knowledge base)
-COPY apps/backend/pb_hooks      ./pb_hooks
+# Install wget for healthcheck
+RUN apk add --no-cache wget ca-certificates
+
+# Copy the PocketBase backend files
+COPY apps/backend/pb_hooks ./pb_hooks
 COPY apps/backend/pb_migrations ./pb_migrations
-COPY apps/backend/LLMS.md       ./LLMS.md
+COPY apps/backend/entrypoint.sh ./entrypoint.sh
 
-# Copy built frontend from stage 1
-COPY --from=frontend-builder /app/backend/pb_public ./pb_public
+# Make entrypoint executable
+RUN chmod +x ./entrypoint.sh
 
-# Persistent data directory (mounted as volume at runtime)
-RUN mkdir -p pb_data
+# Copy the built frontend into PocketBase's public folder
+COPY --from=frontend-builder /app/dist /pb/pb_public
 
-# Create non-root user with configurable UID/GID
-RUN addgroup -g "$GID" zublo && \
-    adduser -u "$UID" -G zublo -S -D zublo && \
-    chown -R zublo:zublo /pb
-
-# Entrypoint runs as root to fix volume permissions, then drops to zublo
-COPY apps/backend/entrypoint.sh /pb/entrypoint.sh
-RUN chmod +x /pb/entrypoint.sh
-
+# Expose port
 EXPOSE 9597
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD wget -q --spider http://localhost:9597/api/health || exit 1
-
-ENTRYPOINT ["/pb/entrypoint.sh"]
-CMD ["serve", "--http=0.0.0.0:9597"]
+# Run the app
+ENTRYPOINT ["./entrypoint.sh"]
