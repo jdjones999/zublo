@@ -60,8 +60,8 @@ export function useSubscriptionForm({
   sub,
   currencies,
   household,
-  defaultName = "Bonus",
-  defaultCategory = "Bonus",
+  defaultName = "", // Bonus
+  defaultCategory = "", //Bonus
 }: UseSubscriptionFormInput) {
   const { t } = useTranslation();
 
