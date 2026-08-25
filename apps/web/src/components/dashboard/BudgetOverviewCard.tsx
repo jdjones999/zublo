@@ -19,6 +19,7 @@ interface BudgetOverviewCardProps {
   budgetUsed: number;
   isOverBudget: boolean;
   totalMonthly?: number;
+  totalBonus?: number; // ✅ ADDED: This is the income (Bonus, Dividend, etc.)
   subscriptionsCount?: number;
   mostExpensive?: MostExpensiveSubscription | null;
   formatValue: (value: number) => string;
@@ -31,6 +32,7 @@ export function BudgetOverviewCard({
   budgetUsed,
   isOverBudget,
   totalMonthly,
+  totalBonus = 0, // ✅ Default to 0 if not passed
   subscriptionsCount,
   mostExpensive,
   formatValue,
@@ -47,11 +49,15 @@ export function BudgetOverviewCard({
   // Render the bottom block only if it is a standard expense
   const displayMostExpensive = mostExpensive && !isCredit ? mostExpensive : null;
 
-  // ✅ NEW: Calculate remaining budget. Credits (Bonus, Dividend, etc.) ADD to the remaining budget.
-  const remainingBudget = typeof totalMonthly === "number" ? budget - totalMonthly : 0;
+  // ✅ KEY FIX: Remaining Budget = (Budget - Expenses) + Income
+  // If totalMonthly is Gross (Expenses + Income), we need to add totalBonus back to get the correct remaining amount.
+  const remainingBudget =
+    typeof totalMonthly === "number"
+      ? budget - totalMonthly + totalBonus
+      : 0;
 
-  // ✅ NEW: Determine if we have positive credits. If remaining budget is greater than 0, and totalMonthly is 0 or lower, show green.
-  const hasCredit = remainingBudget > budget || (typeof totalMonthly === "number" && totalMonthly < 0);
+  // ✅ KEY FIX: If we have income, or the totalMonthly is negative, turn it green
+  const hasCredit = totalBonus > 0 || (typeof totalMonthly === "number" && totalMonthly < 0);
 
   return (
     <Card className="flex flex-col overflow-hidden rounded-3xl border shadow-sm">
@@ -86,14 +92,14 @@ export function BudgetOverviewCard({
                 value={budgetUsed}
                 className={cn(
                   "h-3 rounded-full",
-                  isOverBudget && "[&>div]:bg-destructive",
+                  isOverBudget && !hasCredit && "[&>div]:bg-destructive",
                   hasCredit && "[&>div]:bg-green-500",
                 )}
               />
               <div className="flex justify-between text-xs font-medium">
                 <span
                   className={cn(
-                    isOverBudget
+                    isOverBudget && !hasCredit
                       ? "font-bold text-destructive"
                       : "text-muted-foreground",
                     hasCredit && "font-bold text-green-500",
@@ -101,7 +107,7 @@ export function BudgetOverviewCard({
                 >
                   {budgetUsed.toFixed(1)}% {t("budget_used").toLowerCase()}
                 </span>
-                {isOverBudget ? (
+                {isOverBudget && !hasCredit ? (
                   <span className="font-bold text-destructive">
                     {t("budget_over")}
                   </span>
