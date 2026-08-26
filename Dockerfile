@@ -3,8 +3,8 @@ FROM node:20-alpine AS web-builder
 
 WORKDIR /app
 
-# Install Bun
-RUN apk add --no-cache curl && curl -fsSL https://bun.sh/install | bash
+# ✅ FIXED: Install bash, curl, and Bun
+RUN apk add --no-cache curl bash && curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
 # Copy web files and install
@@ -28,7 +28,7 @@ RUN apk add --no-cache wget ca-certificates unzip
 COPY apps/backend/pb_hooks ./pb_hooks
 COPY apps/backend/pb_migrations ./pb_migrations
 
-# 🔥 CRITICAL: Download the PocketBase binary
+# Download the PocketBase binary
 RUN wget -q https://github.com/pocketbase/pocketbase/releases/download/v0.22.0/pocketbase_0.22.0_linux_amd64.zip -O /tmp/pb.zip \
     && unzip -o /tmp/pb.zip -d /pb \
     && rm /tmp/pb.zip
