@@ -165,7 +165,7 @@ export function useSubscriptionForm({
         inactive: false,
         auto_mark_paid: false,
         cancellation_date: "",
-        is_income: ["Bonus", "Dividend", "Commission", "Income"].includes(defaultCategory), // ✅ ADDED: Auto-set to true for credit categories
+        is_income: false, // ✅ ADDED: Auto-set to true for credit categories
       });
     }
   }, [sub, currencies, cycles, household, reset, defaultName, defaultCategory]);

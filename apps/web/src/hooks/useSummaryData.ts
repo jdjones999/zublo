@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/queryKeys";
+import { isCreditItem, queryKeys } from "@/lib/queryKeys";
 import { toMonthly } from "@/lib/utils";
 import { currenciesService } from "@/services/currencies";
 import { subscriptionsService } from "@/services/subscriptions";
@@ -24,19 +24,10 @@ export function useSummaryData(userId: string) {
 
       for (const sub of subs) {
         const currency = sub.expand?.currency;
-        const cycleName = sub.expand?.cycle?.name ?? sub.billing_cycle ?? "Monthly";
+        const cycleName = sub.expand?.cycle?.name ?? "Monthly";
         const frequency = sub.frequency || 1;
 
-        const subName = sub.name || "";
-
-        // 🔍 DEBUG: This is the ONLY logic that matters!
-        const isCredit = ["bonus", "dividend", "commission", "income"].some((kw) =>
-          subName.toLowerCase().includes(kw)
-        );
-
-        console.log("🔍 DEBUG: Subscription Name:", subName);
-        console.log("🔍 DEBUG: Is Credit?", isCredit);
-        console.log("🔍 DEBUG: Price:", sub.price);
+        const isCredit = isCreditItem(sub);
 
         const rate = currency?.rate ?? 1;
 
