@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+
 import { queryKeys } from "@/lib/queryKeys";
 import { toMonthly } from "@/lib/utils";
 import { currenciesService } from "@/services/currencies";
@@ -33,8 +34,9 @@ export function useSummaryData(userId: string) {
         const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
         const categoryLower = categoryName.toLowerCase().trim();
 
+        // ✅ THE LOGIC THAT MAKES BONUS WORK (Now applied to all credit keywords)
         const isCreditItem = CREDIT_KEYWORDS.some(
-          (kw) => titleLower.includes(kw) || categoryLower.includes(kw)
+          (keyword) => titleLower.includes(keyword) || categoryLower.includes(keyword)
         );
 
         const rate = currency?.rate ?? 1;
