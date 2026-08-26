@@ -1,12 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-
 import { queryKeys } from "@/lib/queryKeys";
 import { toMonthly } from "@/lib/utils";
 import { currenciesService } from "@/services/currencies";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Subscription } from "@/types";
-
-const CREDIT_KEYWORDS = ["bonus", "dividend", "commission", "income"];
 
 export function useSummaryData(userId: string) {
   return useQuery({
@@ -28,41 +25,42 @@ export function useSummaryData(userId: string) {
       for (const sub of subs) {
         const currency = sub.expand?.currency;
         const cycleName = sub.expand?.cycle?.name ?? sub.billing_cycle ?? "Monthly";
-        const categoryName = sub.expand?.category?.name ?? "";
         const frequency = sub.frequency || 1;
 
-        const titleLower = sub.name ? sub.name.toLowerCase().trim() : "";
-        const categoryLower = categoryName.toLowerCase().trim();
+        const subName = sub.name || "";
 
-        // ✅ THE LOGIC THAT MAKES BONUS WORK (Now applied to all credit keywords)
-        const isCreditItem = CREDIT_KEYWORDS.some(
-          (keyword) => titleLower.includes(keyword) || categoryLower.includes(keyword)
+        // 🔍 DEBUG: This is the ONLY logic that matters!
+        const isCredit = ["bonus", "dividend", "commission", "income"].some((kw) =>
+          subName.toLowerCase().includes(kw)
         );
+
+        console.log("🔍 DEBUG: Subscription Name:", subName);
+        console.log("🔍 DEBUG: Is Credit?", isCredit);
+        console.log("🔍 DEBUG: Price:", sub.price);
 
         const rate = currency?.rate ?? 1;
 
-        if (isCreditItem) {
+        if (isCredit) {
           const monthlyCredit = toMonthly(sub.price, cycleName, frequency);
           totalMonthlyIncome += (monthlyCredit / rate) * mainRate;
+          console.log("✅ ADDING TO INCOME (CREDIT)");
         } else {
           const monthly = toMonthly(sub.price, cycleName, frequency);
           const monthlyMain = (monthly / rate) * mainRate;
           totalMonthlyExpenses += monthlyMain;
-
-          if (!mostExpensive || monthlyMain > mostExpensive.monthly) {
-            mostExpensive = { id: sub.id, name: sub.name, monthly: monthlyMain, logo: sub.logo, record: sub };
-          }
+          console.log("❌ ADDING TO EXPENSES (DEBIT)");
         }
       }
 
-      const totalMonthly = totalMonthlyExpenses;
+      console.log("🔍 FINAL totalMonthly:", totalMonthlyExpenses);
+      console.log("🔍 FINAL totalBonus:", totalMonthlyIncome);
 
       return {
-        totalMonthly,
+        totalMonthly: totalMonthlyExpenses,
         totalBonus: totalMonthlyIncome,
-        totalYearly: totalMonthly * 12,
-        totalWeekly: (totalMonthly * 12) / 52,
-        totalDaily: (totalMonthly * 12) / 365,
+        totalYearly: totalMonthlyExpenses * 12,
+        totalWeekly: (totalMonthlyExpenses * 12) / 52,
+        totalDaily: (totalMonthlyExpenses * 12) / 365,
         mainSymbol,
         count: subs.length,
         mostExpensive,
