@@ -98,7 +98,7 @@ export function SubscriptionCard({
   const currency = sub.expand?.currency;
   const cycleName = sub.expand?.cycle?.name ?? "Monthly";
   const category = sub.expand?.category;
-  const payer = sub.expand?.payer || sub.expand?.user || (sub.payer ? { name: sub.payer } : null);
+  const payer = sub.expand?.payer || (sub.payer ? { name: sub.payer } : null);
   const paymentMethod = sub.expand?.payment_method;
 
   const shouldConvert = convertCurrency && mainCurrency && !currency?.is_main;

@@ -61,7 +61,7 @@ export interface Subscription {
   cancellation_date?: string;
   replacement_subscription?: string;
   user: string;
-  is_income: boolean; // ✅ ADDED: Marks this subscription as a credit/income (e.g., Dividend, Bonus)
+  is_income?: boolean;
   // Expanded relations
   expand?: {
     currency?: Currency;

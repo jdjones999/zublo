@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { subscriptionsService } from "@/services/subscriptions";
 import { currenciesService } from "@/services/currencies";
-import type { Subscription, Currency } from "@/types";
+import type { Subscription } from "@/types";
 
 export interface SummaryData {
   totalMonthly: number;

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { isCreditItem, queryKeys } from "@/lib/queryKeys";
-import { toMonthly } from "@/lib/utils";
+import { queryKeys } from "@/lib/queryKeys";
+import { isCreditItem, toMonthly } from "@/lib/utils";
 import { currenciesService } from "@/services/currencies";
 import { subscriptionsService } from "@/services/subscriptions";
 import type { Subscription } from "@/types";
@@ -20,7 +20,13 @@ export function useSummaryData(userId: string) {
 
       let totalMonthlyExpenses = 0;
       let totalMonthlyIncome = 0;
-      let mostExpensive: { id: string; name: string; monthly: number; logo?: string; record: Subscription } | null = null;
+      let mostExpensive: {
+        id: string;
+        name: string;
+        monthly: number;
+        logo?: string;
+        record: Subscription;
+      } | null = null;
 
       for (const sub of subs) {
         const currency = sub.expand?.currency;
@@ -39,6 +45,16 @@ export function useSummaryData(userId: string) {
           const monthly = toMonthly(sub.price, cycleName, frequency);
           const monthlyMain = (monthly / rate) * mainRate;
           totalMonthlyExpenses += monthlyMain;
+
+          if (!mostExpensive || monthlyMain > mostExpensive.monthly) {
+            mostExpensive = {
+              id: sub.id,
+              name: sub.name,
+              monthly: monthlyMain,
+              record: sub,
+            };
+          }
+
           console.log("❌ ADDING TO EXPENSES (DEBIT)");
         }
       }

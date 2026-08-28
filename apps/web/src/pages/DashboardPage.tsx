@@ -84,14 +84,6 @@ export function DashboardPage() {
   const userName = user?.name || user?.email?.split("@")[0] || "—";
 
   // ✅ THE ULTIMATE FIX: Filter out any credit items from "Most Expensive" 
-  // by checking the CATEGORY or NAME.
-  const safeMostExpensive = summaryData?.mostExpensive 
-    ? (["bonus", "dividend", "commission", "income"].some(kw => 
-        summaryData.mostExpensive!.name.toLowerCase().includes(kw) || 
-        summaryData.mostExpensive!.record.expand?.category?.name?.toLowerCase().includes(kw)
-      ) ? null : summaryData.mostExpensive)
-    : null;
-
   return (
     <div className="animate-in slide-in-from-bottom-4 space-y-8 fade-in duration-500">
       <DashboardHeader
@@ -140,7 +132,7 @@ export function DashboardPage() {
           totalMonthly={summaryData?.totalMonthly} // Pure expenses
           totalBonus={summaryData?.totalBonus}     // Dividend adds to budget
           subscriptionsCount={summaryData?.count}
-          mostExpensive={safeMostExpensive}        // ✅ Pass the safe version
+          mostExpensive={summaryData?.mostExpensive}
           formatValue={formatValue}
         />
       </div>
